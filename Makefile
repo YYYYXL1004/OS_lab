@@ -258,7 +258,7 @@ all: build
 	@cp $(RUSTSBI) sbi-qemu
 	@echo "Running QEMU with platform files..."
 	@$(QEMU) -machine virt -m 32M -nographic -smp $(CPUS) \
-		-drive file=fs.img,if=none,format=raw,id=x0 \
+		-drive file=sdcard.img,if=none,format=raw,id=x0 \
 		-device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0 \
 		-kernel kernel-qemu \
 		-bios sbi-qemu
