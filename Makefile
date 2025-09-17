@@ -252,8 +252,16 @@ clean:
 	$U/usys.S \
 	$(UPROGS)
 
-all:
-	@make build
+all: build
+	@echo "Copying kernel and sbi for platform..."
+	@cp $(T)/kernel kernel-qemu
+	@cp $(RUSTSBI) sbi-qemu
+	@echo "Running QEMU with platform files..."
+	@$(QEMU) -machine virt -m 32M -nographic -smp $(CPUS) \
+		-drive file=fs.img,if=none,format=raw,id=x0 \
+		-device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0 \
+		-kernel kernel-qemu \
+		-bios sbi-qemu
 
 dump_initcode: all
 	$(CC) -Os -s -fno-unroll-loops -fmerge-all-constants -ffreestanding -fno-common -nostdlib -mno-relax -I. -Ikernel -c $U/init.c -o $U/init.o
