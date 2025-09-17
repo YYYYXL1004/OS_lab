@@ -262,12 +262,3 @@ dump_initcode: all
 	$(OBJDUMP) -S $U/_init > $U/init.asm
 	od -v -t x1 -An oo | sed -E 's/ (.{2})/0x\1,/g' > kernel/include/initcode.h
 	rm oo
-
-# dump_initcode: all
-# 	$(CC) -Os -ffreestanding -fno-common -nostdlib -mno-relax -I. -Ikernel -S $U/init.c $U/init.S
-# 	$(CC) -Os -s -fno-unroll-loops -fmerge-all-constants -ffreestanding -fno-common -nostdlib -mno-relax -I. -Ikernel -c $U/init.c -o $U/init.o
-# 	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $U/_init $U/init.o $U/usys.o $U/printf.o 
-# 	$(OBJCOPY) -S -O binary $U/_init oo 
-# 	$(OBJDUMP) -S $U/_init > $U/init.asm
-# 	od -v -t x1 -An oo | sed -E 's/ (.{2})/0x\1,/g' > kernel/include/initcode.h
-# 	rm oo
