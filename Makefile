@@ -99,12 +99,25 @@ linker = ./linker/qemu.ld
 endif
 
 # Compile Kernel
-$T/kernel: $(OBJS) $(linker) $U/initcode
+# 主内核的依赖项里，去掉了旧的 $U/initcode
+$T/kernel: $(OBJS) $(linker)
 	@if [ ! -d "./target" ]; then mkdir target; fi
 	@$(LD) $(LDFLAGS) -T $(linker) -o $T/kernel $(OBJS)
 	@$(OBJDUMP) -S $T/kernel > $T/kernel.asm
 	@$(OBJDUMP) -t $T/kernel | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $T/kernel.sym
-  
+
+# 新增规则：让 proc.o 依赖于自动生成的 initcode.h
+# 这样 make 在编译 proc.c 之前会先确保 initcode.h 是最新的
+$K/proc.o: kernel/include/initcode.h 
+
+# 新增规则：定义如何从 init.c 生成 initcode.h
+kernel/include/initcode.h: $U/init.c $U/usys.o $U/printf.o
+	@echo "GENERATING initcode.h from init.c"
+	$(CC) -Os -s -fno-unroll-loops -fmerge-all-constants -ffreestanding -fno-common -nostdlib -mno-relax -I. -Ikernel -c $U/init.c -o $U/init.o
+	@$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $U/_init $U/init.o $U/usys.o $U/printf.o 
+	@$(OBJCOPY) -S -O binary $U/_init $(T)/initcode.bin
+	@od -v -t x1 -An $(T)/initcode.bin | sed -E 's/ (.{2})/0x\1,/g' > kernel/include/initcode.h
+
 build: $T/kernel userprogs
 
 # Compile RustSBI
@@ -151,12 +164,6 @@ ifeq ($(platform), k210)
 else
 	@$(QEMU) $(QEMUOPTS)
 endif
-
-$U/initcode: $U/initcode.S
-	$(CC) $(CFLAGS) -march=rv64g -nostdinc -I. -Ikernel -c $U/initcode.S -o $U/initcode.o
-	$(LD) $(LDFLAGS) -N -e start -Ttext 0 -o $U/initcode.out $U/initcode.o
-	$(OBJCOPY) -S -O binary $U/initcode.out $U/initcode
-	$(OBJDUMP) -S $U/initcode.o > $U/initcode.asm
 
 tags: $(OBJS) _init
 	@etags *.S *.c
@@ -250,7 +257,8 @@ clean:
 	$K/kernel \
 	.gdbinit \
 	$U/usys.S \
-	$(UPROGS)
+	$(UPROGS) \
+	kernel/include/initcode.h
 
 all: build
 	@echo "Copying kernel and sbi for platform..."
@@ -263,10 +271,10 @@ all: build
 		-kernel kernel-qemu \
 		-bios sbi-qemu
 
-dump_initcode: all
-	$(CC) -Os -s -fno-unroll-loops -fmerge-all-constants -ffreestanding -fno-common -nostdlib -mno-relax -I. -Ikernel -c $U/init.c -o $U/init.o
-	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $U/_init $U/init.o $U/usys.o $U/printf.o 
-	$(OBJCOPY) -S -O binary $U/_init oo 
-	$(OBJDUMP) -S $U/_init > $U/init.asm
-	od -v -t x1 -An oo | sed -E 's/ (.{2})/0x\1,/g' > kernel/include/initcode.h
-	rm oo
+# dump_initcode: all
+# 	$(CC) -Os -s -fno-unroll-loops -fmerge-all-constants -ffreestanding -fno-common -nostdlib -mno-relax -I. -Ikernel -c $U/init.c -o $U/init.o
+# 	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $U/_init $U/init.o $U/usys.o $U/printf.o 
+# 	$(OBJCOPY) -S -O binary $U/_init oo 
+# 	$(OBJDUMP) -S $U/_init > $U/init.asm
+# 	od -v -t x1 -An oo | sed -E 's/ (.{2})/0x\1,/g' > kernel/include/initcode.h
+# 	rm oo
