@@ -33,6 +33,7 @@ int remove(char *filename);
 int trace(int mask);
 int sysinfo(struct sysinfo *);
 int rename(char *old, char *new);
+int shutdown(void); // call sbi_shutdown 
 
 // ulib.c
 int stat(const char*, struct stat*);
