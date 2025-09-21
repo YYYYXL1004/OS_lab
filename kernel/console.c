@@ -10,7 +10,7 @@
 //
 #include <stdarg.h>
 
-
+#include "include/printf.h"
 #include "include/types.h"
 #include "include/param.h"
 #include "include/spinlock.h"
@@ -130,6 +130,7 @@ consoleread(int user_dst, uint64 dst, int n)
 void
 consoleintr(int c)
 {
+  // printf("C"); // 加上探针debug
   acquire(&cons.lock);
 
   switch(c){
