@@ -11,6 +11,8 @@
 #include "include/vm.h"
 #include "include/string.h"
 #include "include/printf.h"
+#include "include/sysnum.h"
+#include "include/sbi.h"
 
 // Fetch the uint64 at addr from the current process.
 int
@@ -175,6 +177,7 @@ static char *sysnames[] = {
   [SYS_trace]       "trace",
   [SYS_sysinfo]     "sysinfo",
   [SYS_rename]      "rename",
+  [SYS_shutdown]    "shutdown",
 };
 
 void
@@ -224,5 +227,10 @@ sys_sysinfo(void)
     return -1;
   }
 
+  return 0;
+}
+
+uint64 sys_shutdown(void) {
+  sbi_shutdown();
   return 0;
 }
