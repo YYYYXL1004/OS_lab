@@ -333,8 +333,15 @@ uint64
 sys_getcwd(void)
 {
   uint64 addr;
-  if (argaddr(0, &addr) < 0)
-    return -1;
+  int size;
+
+  // 1. 同时获取 buf 地址和 buf 大小两个参数
+  if (argaddr(0, &addr) < 0 || argint(1, &size) < 0)
+    return 0; // 参数获取失败
+
+  // 2. 校验参数合法性
+  if (addr == 0 || size <= 0)
+    return 0; // 无效的缓冲区或大小
 
   struct dirent *de = myproc()->cwd;
   char path[FAT32_MAX_PATH];
@@ -349,20 +356,26 @@ sys_getcwd(void)
     while (de->parent) {
       len = strlen(de->filename);
       s -= len;
-      if (s <= path)          // can't reach root "/"
-        return -1;
+      if (s <= path)          // 路径过长，超出了内核的临时缓冲区
+        return 0;
       strncpy(s, de->filename, len);
       *--s = '/';
       de = de->parent;
     }
   }
-
-  // if (copyout(myproc()->pagetable, addr, s, strlen(s) + 1) < 0)
-  if (copyout2(addr, s, strlen(s) + 1) < 0)
-    return -1;
   
-  return 0;
+  // 3. 检查路径长度是否会超出用户缓冲区
+  int n = strlen(s) + 1; // +1 为了包含结尾的 '\0'
+  if (n > size) {
+    return 0; // 用户缓冲区太小
+  }
+  
+  // 4. 拷贝到用户空间
+  if (copyout2(addr, s, n) < 0)
+    return 0; // 拷贝失败
 
+  // 5. 成功时返回用户缓冲区的地址
+  return addr;
 }
 
 // Is the directory dp empty except for "." and ".." ?
