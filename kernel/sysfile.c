@@ -348,19 +348,20 @@ sys_getcwd(void)
   char *s;
   int len;
 
-  if (de->parent == NULL) {
+  if (de->parent == NULL) {  // 如果当前就是根目录
     s = "/";
   } else {
-    s = path + FAT32_MAX_PATH - 1;
-    *s = '\0';
+    s = path + FAT32_MAX_PATH - 1; //指针s先指向临时缓冲区path的末尾
+    *s = '\0';  // 在最末尾放一个字符串结束符
+    // 循环向上找父目录
     while (de->parent) {
       len = strlen(de->filename);
-      s -= len;
+      s -= len;               // 指针s向前移动 目录名的长度
       if (s <= path)          // 路径过长，超出了内核的临时缓冲区
         return 0;
-      strncpy(s, de->filename, len);
-      *--s = '/';
-      de = de->parent;
+      strncpy(s, de->filename, len);  // 拷贝目录名
+      *--s = '/';           // 指针再向前移动一位，放一个'/'
+      de = de->parent;      // 切换到父目录，准备下一次循环
     }
   }
   
