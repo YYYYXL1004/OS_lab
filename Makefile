@@ -1,4 +1,4 @@
-# platform	:= k210
+#platform	:= k210
 platform	:= qemu
 # mode := debug
 mode := release
@@ -99,25 +99,12 @@ linker = ./linker/qemu.ld
 endif
 
 # Compile Kernel
-# 主内核的依赖项里，去掉了旧的 $U/initcode
-$T/kernel: $(OBJS) $(linker)
+$T/kernel: $(OBJS) $(linker) $U/initcode
 	@if [ ! -d "./target" ]; then mkdir target; fi
 	@$(LD) $(LDFLAGS) -T $(linker) -o $T/kernel $(OBJS)
 	@$(OBJDUMP) -S $T/kernel > $T/kernel.asm
 	@$(OBJDUMP) -t $T/kernel | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $T/kernel.sym
-
-# 新增规则：让 proc.o 依赖于自动生成的 initcode.h
-# 这样 make 在编译 proc.c 之前会先确保 initcode.h 是最新的
-$K/proc.o: kernel/include/initcode.h 
-
-# 新增规则：定义如何从 init.c 生成 initcode.h
-kernel/include/initcode.h: $U/init.c $U/usys.o $U/printf.o
-	@echo "GENERATING initcode.h from init.c"
-	$(CC) -Os -s -fno-unroll-loops -fmerge-all-constants -ffreestanding -fno-common -nostdlib -mno-relax -I. -Ikernel -c $U/init.c -o $U/init.o
-	@$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $U/_init $U/init.o $U/usys.o $U/printf.o 
-	@$(OBJCOPY) -S -O binary $U/_init $(T)/initcode.bin
-	@od -v -t x1 -An $(T)/initcode.bin | sed -E 's/ (.{2})/0x\1,/g' > kernel/include/initcode.h
-
+  
 build: $T/kernel userprogs
 
 # Compile RustSBI
@@ -159,11 +146,17 @@ ifeq ($(platform), k210)
 	@$(OBJCOPY) $(RUSTSBI) --strip-all -O binary $(k210)
 	@dd if=$(image) of=$(k210) bs=128k seek=1
 	@$(OBJDUMP) -D -b binary -m riscv $(k210) > $T/k210.asm
-	@chmod 777 $(k210-serialport)
+	@ chmod 777 $(k210-serialport)
 	@python3 ./tools/kflash.py -p $(k210-serialport) -b 1500000 -t $(k210)
 else
 	@$(QEMU) $(QEMUOPTS)
 endif
+
+$U/initcode: $U/initcode.S
+	$(CC) $(CFLAGS) -march=rv64g -nostdinc -I. -Ikernel -c $U/initcode.S -o $U/initcode.o
+	$(LD) $(LDFLAGS) -N -e start -Ttext 0 -o $U/initcode.out $U/initcode.o
+	$(OBJCOPY) -S -O binary $U/initcode.out $U/initcode
+	$(OBJDUMP) -S $U/initcode.o > $U/initcode.asm
 
 tags: $(OBJS) _init
 	@etags *.S *.c
@@ -211,7 +204,7 @@ UPROGS=\
 	$U/_usertests\
 	$U/_strace\
 	$U/_mv\
-	$U/_sysinfo\
+	$U/_hello_world\
 
 	# $U/_forktest\
 	# $U/_ln\
@@ -223,31 +216,31 @@ userprogs: $(UPROGS)
 
 dst=/mnt
 
-# @cp $U/_init $(dst)/init
-# @cp $U/_sh $(dst)/sh
+# @ cp $U/_init $(dst)/init
+# @ cp $U/_sh $(dst)/sh
 # Make fs image
 fs: $(UPROGS)
 	@if [ ! -f "fs.img" ]; then \
 		echo "making fs image..."; \
 		dd if=/dev/zero of=fs.img bs=512k count=512; \
 		mkfs.vfat -F 32 fs.img; fi
-	@mount fs.img $(dst)
-	@if [ ! -d "$(dst)/bin" ]; then mkdir $(dst)/bin; fi
-	@cp README $(dst)/README
+	@ mount fs.img $(dst)
+	@if [ ! -d "$(dst)/bin" ]; then  mkdir $(dst)/bin; fi
+	@ cp README $(dst)/README
 	@for file in $$( ls $U/_* ); do \
-		cp $$file $(dst)/$${file#$U/_};\
-		cp $$file $(dst)/bin/$${file#$U/_}; done
+		 cp $$file $(dst)/$${file#$U/_};\
+		 cp $$file $(dst)/bin/$${file#$U/_}; done
 	@cp -r riscv64/* $(dst)
-	@umount $(dst)
+	@ umount $(dst)
 
 # Write mounted sdcard
 sdcard: userprogs
-	@if [ ! -d "$(dst)/bin" ]; then mkdir $(dst)/bin; fi
+	@if [ ! -d "$(dst)/bin" ]; then  mkdir $(dst)/bin; fi
 	@for file in $$( ls $U/_* ); do \
-		cp $$file $(dst)/bin/$${file#$U/_}; done
-	@cp $U/_init $(dst)/init
-	@cp $U/_sh $(dst)/sh
-	@cp README $(dst)/README
+		 cp $$file $(dst)/bin/$${file#$U/_}; done
+	@ cp $U/_init $(dst)/init
+	@ cp $U/_sh $(dst)/sh
+	@ cp README $(dst)/README
 
 clean: 
 	rm -f *.tex *.dvi *.idx *.aux *.log *.ind *.ilg \
@@ -257,24 +250,16 @@ clean:
 	$K/kernel \
 	.gdbinit \
 	$U/usys.S \
-	$(UPROGS) \
-	kernel/include/initcode.h
+	$(UPROGS)
 
-all: build
-	@echo "Copying kernel and sbi for platform..."
-	@cp $(T)/kernel kernel-qemu
-	@cp $(RUSTSBI) sbi-qemu
-	@echo "Running QEMU with platform files..."
-	@$(QEMU) -machine virt -m 32M -nographic -smp $(CPUS) \
-		-drive file=sdcard.img,if=none,format=raw,id=x0 \
-		-device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0 \
-		-kernel kernel-qemu \
-		-bios sbi-qemu
+all:
+	@make build
 
-# dump_initcode: all
-# 	$(CC) -Os -s -fno-unroll-loops -fmerge-all-constants -ffreestanding -fno-common -nostdlib -mno-relax -I. -Ikernel -c $U/init.c -o $U/init.o
-# 	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $U/_init $U/init.o $U/usys.o $U/printf.o 
-# 	$(OBJCOPY) -S -O binary $U/_init oo 
-# 	$(OBJDUMP) -S $U/_init > $U/init.asm
-# 	od -v -t x1 -An oo | sed -E 's/ (.{2})/0x\1,/g' > kernel/include/initcode.h
-# 	rm oo
+dump: all
+	$(CC) -Os -ffreestanding -fno-common -nostdlib -mno-relax -I. -Ikernel -S $U/init.c -o $U/init.S
+	$(CC) -Os -s -fno-unroll-loops -fmerge-all-constants -ffreestanding -fno-common -nostdlib -mno-relax -I. -Ikernel -c $U/init.c -o $U/init.o
+	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $U/_init $U/init.o $U/usys.o $U/printf.o
+	$(OBJCOPY) -S -O binary $U/_init oo
+	$(OBJDUMP) -S $U/_init > $U/init.asm
+	od -v -t x1 -An oo | sed -E 's/ (.{2})/0x\1,/g' > kernel/include/initcode.h
+	rm oo
