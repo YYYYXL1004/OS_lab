@@ -29,5 +29,6 @@
 #define SYS_getcwd      17
 #define SYS_rename      26
 #define SYS_shutdown    10001
+#define SYS_times       153
 
 #endif

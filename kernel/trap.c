@@ -91,9 +91,11 @@ usertrap(void)
     exit(-1);
 
   // give up the CPU if this is a timer interrupt.
-  if(which_dev == 2)
+  if(which_dev == 2) {
+    // 添加times修改 Add this line to increment user time ticks
+    myproc()->utime++;
     yield();
-
+  }
   usertrapret();
 }
 
@@ -170,6 +172,8 @@ kerneltrap() {
   
   // give up the CPU if this is a timer interrupt.
   if(which_dev == 2 && myproc() != 0 && myproc()->state == RUNNING) {
+    //添加times修改  Add this line to increment system time ticks
+    myproc()->stime++;
     yield();
   }
   // the yield() may have caused some traps to occur,

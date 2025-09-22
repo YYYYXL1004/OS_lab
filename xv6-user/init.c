@@ -11,7 +11,7 @@ char *tests[] = {
       "getcwd",
       "getpid",
       "write",
-      // "times",
+      "times",
       // "uname",
       //"shutdown",
   };

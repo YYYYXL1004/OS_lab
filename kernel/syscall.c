@@ -119,6 +119,7 @@ extern uint64 sys_trace(void);
 extern uint64 sys_sysinfo(void);
 extern uint64 sys_rename(void);
 extern uint64 sys_shutdown(void);
+extern uint64 sys_times(void);
 
 static uint64 (*syscalls[])(void) = {
   [SYS_fork]        sys_fork,
@@ -148,6 +149,7 @@ static uint64 (*syscalls[])(void) = {
   [SYS_sysinfo]     sys_sysinfo,
   [SYS_rename]      sys_rename,
   [SYS_shutdown]    sys_shutdown,
+  [SYS_times]       sys_times,
 };
 
 static char *sysnames[] = {
@@ -178,6 +180,7 @@ static char *sysnames[] = {
   [SYS_sysinfo]     "sysinfo",
   [SYS_rename]      "rename",
   [SYS_shutdown]    "shutdown",
+  [SYS_times]       "times",
 };
 
 void
@@ -233,4 +236,47 @@ sys_sysinfo(void)
 uint64 sys_shutdown(void) {
   sbi_shutdown();
   return 0;
+}
+
+// ADD THIS STRUCTURE DEFINITION
+struct tms {
+  uint64 tms_utime;  /* user time */
+  uint64 tms_stime;  /* system time */
+  uint64 tms_cutime; /* user time of children */
+  uint64 tms_cstime; /* system time of children */
+};
+// You may need to declare these if they are not in included headers
+extern struct spinlock tickslock;
+extern uint64 ticks;
+
+uint64
+sys_times(void)
+{
+  uint64 addr;
+  struct tms tms_buf;
+  struct proc *p = myproc();
+
+  // 1. 从第一个参数获取用户空间 tms 结构体的地址
+  if (argaddr(0, &addr) < 0) {
+    return -1;
+  }
+
+  // 2. 填充 tms 结构体
+  // 我们需要获取 tickslock 来安全地读取全局 ticks
+  // 进程特定的时间通常在 trap 中更新，也最好在锁内读取以保证一致性
+  acquire(&tickslock);
+  tms_buf.tms_utime = p->utime;
+  tms_buf.tms_stime = p->stime;
+  tms_buf.tms_cutime = p->cutime;
+  tms_buf.tms_cstime = p->cstime;
+  uint64 current_ticks = ticks;
+  release(&tickslock);
+
+  // 3. 将内核中填充好的结构体拷贝回用户空间地址
+  if (copyout2(addr, (char *)&tms_buf, sizeof(tms_buf)) < 0) {
+    return -1;
+  }
+
+  // 4. 成功后，返回系统启动以来的总 ticks
+  return current_ticks;
 }

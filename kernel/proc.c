@@ -140,7 +140,11 @@ allocproc(void)
 
 found:
   p->pid = allocpid();
-
+  // 添加times修改 ADD THESE LINES to initialize the time fields
+  p->utime = 0;
+  p->stime = 0;
+  p->cutime = 0;
+  p->cstime = 0;
   // Allocate a trapframe page.
   if((p->trapframe = (struct trapframe *)kalloc()) == NULL){
     release(&p->lock);
@@ -452,7 +456,9 @@ exit(int status)
   // we need the parent's lock in order to wake it up from wait().
   // the parent-then-child rule says we have to lock it first.
   acquire(&original_parent->lock);
-
+  // 添加times修改 ADD THESE LINES to pass the child's times to its parent
+  original_parent->cutime += p->utime;
+  original_parent->cstime += p->stime;
   acquire(&p->lock);
 
   // Give any children to init.

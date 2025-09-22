@@ -34,7 +34,7 @@ int trace(int mask);
 int sysinfo(struct sysinfo *);
 int rename(char *old, char *new);
 int shutdown(void); // call sbi_shutdown 
-
+int times(void);
 // ulib.c
 int stat(const char*, struct stat*);
 char* strcpy(char*, const char*);
