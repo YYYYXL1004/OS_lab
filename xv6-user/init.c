@@ -10,7 +10,7 @@ char *argv[] = { "sh", 0 };
 char *tests[] = {
       "getpid",
       "write",
-      // "getcwd",
+      "getcwd",
       // "times",
       // "uname",
       //"shutdown",

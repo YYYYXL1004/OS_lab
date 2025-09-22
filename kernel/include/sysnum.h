@@ -26,7 +26,7 @@
 #define SYS_test_proc   22
 #define SYS_dev         23
 #define SYS_readdir     24
-#define SYS_getcwd      25
+#define SYS_getcwd      17
 #define SYS_rename      26
 #define SYS_shutdown    10001
 
