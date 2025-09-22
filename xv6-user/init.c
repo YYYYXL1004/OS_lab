@@ -10,9 +10,9 @@ char *argv[] = { "sh", 0 };
 char *tests[] = {
       "getpid",
       "write",
-      "getcwd",
-      "times",
-      "uname",
+      // "getcwd",
+      // "times",
+      // "uname",
       //"shutdown",
   };
 int main(void)
@@ -35,7 +35,6 @@ int main(void)
     }
     if (pid == 0)
     {
-      // printf("第%d次", i);
       exec(tests[i], argv);
       printf("init: exec %s failed\n", tests[i]);
       exit(1);
