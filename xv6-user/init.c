@@ -9,10 +9,10 @@
 char *argv[] = { "sh", 0 };
 char *tests[] = {
       "getpid",
-      // "getcwd",
-      // "write",
-      // "times",
-      // "uname",
+      "write",
+      "getcwd",
+      "times",
+      "uname",
       //"shutdown",
   };
 int main(void)
