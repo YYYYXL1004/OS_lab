@@ -6,7 +6,7 @@
 #include "kernel/include/fcntl.h"
 #include "xv6-user/user.h"
 
-char *argv[] = { [0]= "sh", [1]=0 };
+char *argv[] = { [0]= "sh", [1]= "getpid" };
 
 int
 main(void)
@@ -21,7 +21,7 @@ main(void)
   dup(0);  // stdout
   dup(0);  // stderr
 
-  for(int i=0;i<1;i++){
+  for(int i=0;i<2;i++){
     printf("init: starting sh\n");
     pid = fork();
     if(pid < 0){
@@ -29,7 +29,7 @@ main(void)
       exit(1);
     }
     if(pid == 0){
-      exec("getpid", argv);
+      exec("/getpid", argv);
       printf("init: exec sh failed\n");
       exit(1);
     }
