@@ -31,7 +31,7 @@ main:
 	li	a0,0
 	call	dup@plt
 	li	s0,0
-	li	s2,4
+	li	s2,5
 .L5:
 	call	fork@plt
 	mv	s1,a0
@@ -86,9 +86,12 @@ main:
 	.align	3
 .LC6:
 	.string	"times"
-	.globl	argv
 	.align	3
 .LC7:
+	.string	"uname"
+	.globl	argv
+	.align	3
+.LC8:
 	.string	"sh"
 	.section	.data.rel.local,"aw"
 	.align	3
@@ -96,14 +99,15 @@ main:
 	.type	argv, @object
 	.size	argv, 16
 argv:
-	.dword	.LC7
+	.dword	.LC8
 	.dword	0
 	.type	tests, @object
-	.size	tests, 32
+	.size	tests, 40
 tests:
 	.dword	.LC3
 	.dword	.LC4
 	.dword	.LC5
 	.dword	.LC6
+	.dword	.LC7
 	.ident	"GCC: (Ubuntu 11.4.0-1ubuntu1~22.04) 11.4.0"
 	.section	.note.GNU-stack,"",@progbits

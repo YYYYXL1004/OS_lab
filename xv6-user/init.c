@@ -12,7 +12,7 @@ char *tests[] = {
       "getpid",
       "write",
       "times",
-      // "uname",
+      "uname",
       //"shutdown",
   };
 int main(void)

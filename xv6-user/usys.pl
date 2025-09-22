@@ -42,4 +42,5 @@ entry("trace");
 entry("sysinfo");
 entry("rename");
 entry("shutdown");
-entry("times")
+entry("times");
+entry("uname");
