@@ -8,9 +8,9 @@
 
 char *argv[] = { "sh", 0 };
 char *tests[] = {
+      "getcwd",
       "getpid",
       "write",
-      "getcwd",
       // "times",
       // "uname",
       //"shutdown",
@@ -22,8 +22,6 @@ int main(void)
   dev(O_RDWR, CONSOLE, 0);
   dup(0); // stdout
   dup(0); // stderr
-  //shutdown();
-  //printf("Working Test!!\n");
   for (int i = 0; i < sizeof(tests) / sizeof(tests[0]); i++)
   {
     // printf("\ninit: starting %d\n", i);

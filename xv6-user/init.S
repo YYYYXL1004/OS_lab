@@ -76,13 +76,13 @@ main:
 	.section	.rodata.str1.8
 	.align	3
 .LC3:
-	.string	"getpid"
+	.string	"getcwd"
 	.align	3
 .LC4:
-	.string	"write"
+	.string	"getpid"
 	.align	3
 .LC5:
-	.string	"getcwd"
+	.string	"write"
 	.globl	argv
 	.align	3
 .LC6:
