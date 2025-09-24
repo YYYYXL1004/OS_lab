@@ -268,11 +268,11 @@ all: build
 	@cp $(T)/kernel ./kernel-qemu
 	@cp ./bootloader/SBI/sbi-qemu ./sbi-qemu
 
-my_set:
-	@$(MAKE) clean
-	@$(MAKE) my_init
-	@$(MAKE) fs
-	@$(MAKE) clean
+my_local:
+	@make clean
+	@make my_init
+	@make fs
+	# @make run
 
 # all: build RUSTSBI
 # 	@cp $(T)/kernel ./kernel-qemu

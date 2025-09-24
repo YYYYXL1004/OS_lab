@@ -272,8 +272,8 @@ sys_times(void)
   tms_buf.tms_stime = p->stime;
   tms_buf.tms_cutime = p->cutime;
   tms_buf.tms_cstime = p->cstime;
-  uint64 current_ticks = ticks;
-  release(&tickslock);
+  uint64 current_ticks = ticks;  // 顺便读取一下系统总的开机时间
+  release(&tickslock);   // 读完解锁
 
   // 3. 将内核中填充好的结构体拷贝回用户空间地址
   if (copyout2(addr, (char *)&tms_buf, sizeof(tms_buf)) < 0) {
