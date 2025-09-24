@@ -44,3 +44,4 @@ entry("rename");
 entry("shutdown");
 entry("times");
 entry("uname");
+entry("brk");

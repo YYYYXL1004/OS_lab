@@ -121,6 +121,7 @@ extern uint64 sys_rename(void);
 extern uint64 sys_shutdown(void);
 extern uint64 sys_times(void);
 extern uint64 sys_uname(void);
+extern uint64 sys_brk(void);
 
 static uint64 (*syscalls[])(void) = {
   [SYS_fork]        sys_fork,
@@ -152,6 +153,7 @@ static uint64 (*syscalls[])(void) = {
   [SYS_shutdown]    sys_shutdown,
   [SYS_times]       sys_times,
   [SYS_uname]       sys_uname,
+  [SYS_brk]         sys_brk,
 };
 
 static char *sysnames[] = {
@@ -184,6 +186,7 @@ static char *sysnames[] = {
   [SYS_shutdown]    "shutdown",
   [SYS_times]       "times",
   [SYS_uname]       "uname",
+  [SYS_brk]         "brk",
 };
 
 void
@@ -320,5 +323,30 @@ sys_uname(void)
   }
 
   // 4. 成功后，返回 0
+  return 0;
+}
+uint64
+sys_brk(void)
+{
+  uint64 addr;
+  struct proc *p = myproc();
+  uint64 oldsz = p->sz;
+
+  //从用户空间获得地址参数
+  if(argaddr(0, &addr) < 0) {
+    return -1;
+  }
+  // 处理brk(0)的情况，返回当前的 program break
+  if(addr == 0) {
+    return oldsz;
+  }
+  // 如果新旧地址相同， 什么都不用做
+  if(addr == oldsz) {
+    return 0;
+  }
+  // 调用growproc里增长或收缩内存
+  if(growproc(addr - oldsz) < 0) {
+    return -1; 
+  }
   return 0;
 }

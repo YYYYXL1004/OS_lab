@@ -227,7 +227,7 @@ fs: $(UPROGS)
 	@if [ ! -d "$(dst)/bin" ]; then  mkdir $(dst)/bin; fi
 	@ cp README $(dst)/README
 	@for file in $$( ls $U/_* ); do \
-		 cp $$file $(dst)/$${file#$U/_};\
+		 cp $$file $(dst)/$${file#$U/_};\   # 把测试样例拷贝到fs.img根目录下
 		 cp $$file $(dst)/bin/$${file#$U/_}; done
 	@cp -R riscv64/* $(dst)
 	@ umount $(dst)
@@ -255,6 +255,7 @@ clean:
 # 	riscv64-linux-gnu-objcopy -S -O binary xv6-user/_init oo
 # 	od -v -t x1 -An oo | sed -E 's/ (.{2})/0x\1,/g' > kernel/include/initcode.h
 # 	rm oo
+
 my_init:
 	@make build
 	$(CC) -Os -ffreestanding -fno-common -nostdlib -mno-relax -I. -Ikernel -S $U/init.c -o $U/init.S
@@ -264,6 +265,8 @@ my_init:
 	$(OBJDUMP) -S $U/_init > $U/init.asm
 	od -v -t x1 -An oo | sed -E 's/ (.{2})/0x\1,/g' > kernel/include/initcode.h
 	rm oo
+
+# all完成编译、拷贝、重命名的三项任务	
 all: build
 	@cp $(T)/kernel ./kernel-qemu
 	@cp ./bootloader/SBI/sbi-qemu ./sbi-qemu

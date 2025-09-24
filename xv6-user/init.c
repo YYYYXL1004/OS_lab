@@ -13,6 +13,7 @@ char *tests[] = {
       "write",
       "times",
       "uname",
+      "brk",
       //"shutdown",
   };
 int main(void)

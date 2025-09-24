@@ -31,5 +31,6 @@
 #define SYS_shutdown    10001
 #define SYS_times       153
 #define SYS_uname       160
+#define SYS_brk         214
 
 #endif
