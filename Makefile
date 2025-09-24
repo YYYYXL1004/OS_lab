@@ -227,7 +227,7 @@ fs: $(UPROGS)
 	@if [ ! -d "$(dst)/bin" ]; then  mkdir $(dst)/bin; fi
 	@ cp README $(dst)/README
 	@for file in $$( ls $U/_* ); do \
-		 cp $$file $(dst)/$${file#$U/_};\   # 把测试样例拷贝到fs.img根目录下
+		 cp $$file $(dst)/$${file#$U/_};\  
 		 cp $$file $(dst)/bin/$${file#$U/_}; done
 	@cp -R riscv64/* $(dst)
 	@ umount $(dst)
@@ -275,7 +275,6 @@ my_local:
 	@make clean
 	@make my_init
 	@make fs
-	# @make run
 
 # all: build RUSTSBI
 # 	@cp $(T)/kernel ./kernel-qemu
