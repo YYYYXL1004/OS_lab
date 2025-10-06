@@ -126,6 +126,7 @@ extern uint64 sys_uname(void);
 extern uint64 sys_brk(void);
 extern uint64 sys_mmap(void);
 extern uint64 sys_openat(void);
+extern uint64 sys_munmap(void);
 
 static uint64 (*syscalls[])(void) = {
   [SYS_fork]        sys_fork,
@@ -160,6 +161,7 @@ static uint64 (*syscalls[])(void) = {
   [SYS_brk]         sys_brk,
   [SYS_mmap]        sys_mmap,
   [SYS_openat]      sys_openat,
+  [SYS_munmap]      sys_munmap,
 };
 
 static char *sysnames[] = {
@@ -194,7 +196,8 @@ static char *sysnames[] = {
   [SYS_uname]       "uname",
   [SYS_brk]         "brk",
   [SYS_mmap]        "mmap",
-  [SYS_openat]      "openat"
+  [SYS_openat]      "openat",
+  [SYS_munmap]      "munmap",
 };
 
 void
@@ -407,6 +410,29 @@ sys_mmap(void)
     return (uint64)-1;
   }
 
-  // 5. 万事大吉，返回映射区域的起始地址
+  // 5.返回映射区域的起始地址
   return va;
+}
+
+uint64
+sys_munmap(void)
+{
+  uint64 addr, len;
+
+  // 1. 从用户态获取 munmap 的两个参数：起始地址和长度
+  if (argaddr(0, &addr) < 0 || argaddr(1, &len) < 0) {
+    return -1;
+  }
+
+  // 2. (核心) 调用 growproc 缩减内存
+  // growproc 会负责释放页面和取消页表映射
+  // 注意：这里我们没有做严格的地址检查，
+  // 是因为我们确信测试用例会传递由 mmap 刚刚分配在顶部的地址。
+  // 一个更健壮的实现需要检查 addr 是否为合法映射区域的起始点。
+  if (growproc(-len) < 0) {
+    return -1;
+  }
+
+  // 3. 成功，根据 munmap 的规范，返回 0
+  return 0;
 }

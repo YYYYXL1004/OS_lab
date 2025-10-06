@@ -34,4 +34,5 @@
 #define SYS_brk         214
 #define SYS_mmap        222
 #define SYS_openat      56
+#define SYS_munmap      215
 #endif
