@@ -213,6 +213,62 @@ sys_open(void)
 }
 
 uint64
+sys_openat(void)
+{
+  char path[FAT32_MAX_PATH];
+  int fd, omode;
+  struct file *f;
+  struct dirent *ep;
+
+  // 主要区别在这里：从 arg(1) 和 arg(2) 获取参数
+  // arg(0) 是 dirfd，我们暂时忽略它
+  if(argstr(1, path, FAT32_MAX_PATH) < 0 || argint(2, &omode) < 0)
+    return -1;
+  // printf("[kernel] sys_openat: path=%s, omode=0x%x\n", path, omode);
+  // 直接把 sys_open 的全部代码复制过来就行
+
+  if(omode & O_CREATE){ 
+    ep = create(path, T_FILE, omode);
+    if(ep == NULL){
+      return -1;
+    }
+  } else {
+    if((ep = ename(path)) == NULL){
+      return -1;
+    }
+    elock(ep);
+    if((ep->attribute & ATTR_DIRECTORY) && omode != O_RDONLY){
+      eunlock(ep);
+      eput(ep);
+      return -1;
+    }
+  }
+
+  if((f = filealloc()) == NULL || (fd = fdalloc(f)) < 0){
+    if (f) {
+      fileclose(f);
+    }
+    eunlock(ep);
+    eput(ep);
+    return -1;
+  }
+
+  if(!(ep->attribute & ATTR_DIRECTORY) && (omode & O_TRUNC)){
+    etrunc(ep);
+  }
+
+  f->type = FD_ENTRY;
+  f->off = (omode & O_APPEND) ? ep->file_size : 0;
+  f->ep = ep;
+  f->readable = !(omode & O_WRONLY);
+  f->writable = (omode & O_WRONLY) || (omode & O_RDWR);
+
+  eunlock(ep);
+
+  return fd;
+}
+
+uint64
 sys_mkdir(void)
 {
   char path[FAT32_MAX_PATH];

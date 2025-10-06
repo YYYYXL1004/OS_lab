@@ -14,6 +14,7 @@ char *tests[] = {
       "times",
       "uname",
       "brk",
+      "mmap"
       //"shutdown",
   };
 int main(void)

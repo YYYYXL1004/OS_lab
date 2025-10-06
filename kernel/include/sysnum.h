@@ -9,7 +9,7 @@
 #define SYS_read         5
 #define SYS_kill         6
 #define SYS_exec         7
-#define SYS_fstat        8
+#define SYS_fstat        80
 #define SYS_chdir        9
 #define SYS_dup         10
 #define SYS_getpid      172
@@ -22,7 +22,7 @@
 #define SYS_trace       18
 #define SYS_sysinfo     19
 #define SYS_mkdir       20
-#define SYS_close       21
+#define SYS_close       57
 #define SYS_test_proc   22
 #define SYS_dev         23
 #define SYS_readdir     24
@@ -32,5 +32,6 @@
 #define SYS_times       153
 #define SYS_uname       160
 #define SYS_brk         214
-
+#define SYS_mmap        222
+#define SYS_openat      56
 #endif

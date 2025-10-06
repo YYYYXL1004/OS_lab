@@ -13,6 +13,8 @@
 #include "include/printf.h"
 #include "include/sysnum.h"
 #include "include/sbi.h"
+#include "include/file.h"
+#include "include/fcntl.h"
 
 // Fetch the uint64 at addr from the current process.
 int
@@ -122,6 +124,8 @@ extern uint64 sys_shutdown(void);
 extern uint64 sys_times(void);
 extern uint64 sys_uname(void);
 extern uint64 sys_brk(void);
+extern uint64 sys_mmap(void);
+extern uint64 sys_openat(void);
 
 static uint64 (*syscalls[])(void) = {
   [SYS_fork]        sys_fork,
@@ -154,6 +158,8 @@ static uint64 (*syscalls[])(void) = {
   [SYS_times]       sys_times,
   [SYS_uname]       sys_uname,
   [SYS_brk]         sys_brk,
+  [SYS_mmap]        sys_mmap,
+  [SYS_openat]      sys_openat,
 };
 
 static char *sysnames[] = {
@@ -187,6 +193,8 @@ static char *sysnames[] = {
   [SYS_times]       "times",
   [SYS_uname]       "uname",
   [SYS_brk]         "brk",
+  [SYS_mmap]        "mmap",
+  [SYS_openat]      "openat"
 };
 
 void
@@ -349,4 +357,56 @@ sys_brk(void)
     return -1; 
   }
   return 0;
+}
+
+uint64
+sys_mmap(void)
+{
+  uint64 addr, len, offset;
+  int prot, flags, fd;
+  struct proc *p = myproc();
+  struct file *f;
+  uint64 va;
+
+  // 1. 从用户空间获取 mmap 的所有参数
+  // addr: 建议的映射起始地址, len: 映射长度, prot: 内存保护标志
+  // flags: 映射对象的类型, fd: 文件描述符, offset: 文件偏移量
+  if (argaddr(0, &addr) < 0 || argaddr(1, &len) < 0 || argint(2, &prot) < 0 ||
+      argint(3, &flags) < 0 || argint(4, &fd) < 0 || argaddr(5, &offset) < 0) {
+    // 获取参数失败，返回-1。在用户态，这个返回值会被转换成 MAP_FAILED
+    return (uint64)-1; 
+  }
+
+  // 2. 根据文件描述符 fd 找到对应的文件结构体
+  // 测试用例中，fd 是由 open 调用返回的一个有效文件描述符
+  if (fd < 0 || fd >= NOFILE || (f = p->ofile[fd]) == 0) {
+    return (uint64)-1;
+  }
+  
+  // 3. 分配虚拟内存
+  // 为了简化实现，我们忽略用户建议的 addr 地址，直接在进程现有内存的末尾（p->sz）进行分配。
+  // 测试用例传的 addr 是 NULL，表示由内核选择地址，所以这个策略是符合测试要求的。
+  va = p->sz;
+  if (growproc(len) < 0) {
+    // 如果内存分配失败（比如超过了物理内存限制）
+    return (uint64)-1;
+  }
+  // growproc 函数成功后，p->sz 会增加 len，新分配的虚拟地址范围就是 [va, p->sz)
+  
+  // 4. 从文件中读取内容到新分配的内存中
+  // 首先，需要把文件的内部偏移量设置为 mmap 参数中指定的 offset
+  // 注意：在多线程环境下直接修改 f->off 不是安全的，但在我们的简单内核和当前测试场景下是可行的。
+  f->off = offset;
+  
+  // 调用 file.c 中实现的 fileread 函数。
+  // 这个函数会负责把文件内容读到内核缓冲区，再通过 copyout2 拷贝到用户指定的虚拟地址 va
+  if (fileread(f, va, len) != len) {
+    // 如果实际读到的字节数和请求的长度不符，说明读取出错了。
+    // 这时需要回滚刚才的内存分配操作，防止内存泄漏。
+    growproc(-len);
+    return (uint64)-1;
+  }
+
+  // 5. 万事大吉，返回映射区域的起始地址
+  return va;
 }

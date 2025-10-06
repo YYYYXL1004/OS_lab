@@ -45,3 +45,5 @@ entry("shutdown");
 entry("times");
 entry("uname");
 entry("brk");
+entry("mmap");
+entry("openat");
