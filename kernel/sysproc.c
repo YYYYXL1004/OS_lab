@@ -10,6 +10,7 @@
 #include "include/kalloc.h"
 #include "include/string.h"
 #include "include/printf.h"
+#include "include/vm.h"
 
 extern int exec(char *path, char **argv);
 
@@ -202,4 +203,48 @@ sys_getppid(void)
   release(&p->lock);
 
   return ppid;
+}
+
+
+struct timespec{
+  uint64 tv_sec;
+  uint64 tv_nsec;
+};
+
+uint64
+sys_nanosleep(void) {
+  uint64 user_ts_addr;
+  struct timespec ts;
+  uint ticks0;
+  uint goal_ticks;
+  // 从用户空间获取指向timespec的指针
+  if(argaddr(0, &user_ts_addr)<0) {
+    return -1;
+  }
+  // 将用户空间里的timespec 安全拷贝到内核空间
+  if(copyin2((char *)&ts, user_ts_addr, sizeof(ts)) <0) {
+    return -1;
+  }
+  // 将请求的休眠时间转换成内核的 ticks数量
+  // 基于100Hz 的tick rate 计算（1tick = 10ms = 10,000,000ns)
+  goal_ticks = ts.tv_sec * 100 + ts.tv_nsec / 10000000;
+  // 如果请求的休眠时间小于1个tick 直接返回
+  if(goal_ticks ==0) {
+    return 0;
+  }
+  // 使用sys_sleep相同的休眠机制
+  acquire(&tickslock);  
+  ticks0 = ticks;
+  while(ticks - ticks0 < goal_ticks) {
+    if(myproc()->killed) {
+      release(&tickslock);
+      return -1;
+    }
+    // 使用sleep()函数，让出CPU，等待时钟中断唤醒
+    // sleep() 会原子地释放 tickslock
+    sleep(&ticks, &tickslock);
+  }
+  release(&tickslock);
+
+  return 0;
 }

@@ -25,6 +25,7 @@ char *tests[] = {
       "execve",
       "getppid",
       "gettimeofday",
+      "sleep",
       // "openat",
       //"shutdown",
   };

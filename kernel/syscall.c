@@ -132,6 +132,7 @@ extern uint64 sys_waitpid(void);
 extern uint64 sys_yield(void);
 extern uint64 sys_getppid(void);
 extern uint64 sys_gettimeofday(void);
+extern uint64 sys_nanosleep(void);
 
 static uint64 (*syscalls[])(void) = {
   [SYS_fork]        sys_fork,
@@ -173,6 +174,7 @@ static uint64 (*syscalls[])(void) = {
   [SYS_execve]      sys_exec,
   [SYS_getppid]     sys_getppid,
   [SYS_gettimeofday]sys_gettimeofday,
+  [SYS_nanosleep]   sys_nanosleep,
 };
 
 static char *sysnames[] = {
@@ -215,6 +217,7 @@ static char *sysnames[] = {
   [SYS_execve]      "execve",
   [SYS_getppid]     "getppid",
   [SYS_gettimeofday]"gettimeofday",
+  [SYS_nanosleep]   "nanosleep",
 };
 
 void

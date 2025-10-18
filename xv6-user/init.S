@@ -31,7 +31,7 @@ main:
 	li	a0,0
 	call	dup@plt
 	li	s0,0
-	li	s2,17
+	li	s2,18
 .L5:
 	call	fork@plt
 	mv	s1,a0
@@ -125,9 +125,12 @@ main:
 	.align	3
 .LC19:
 	.string	"gettimeofday"
-	.globl	argv
 	.align	3
 .LC20:
+	.string	"sleep"
+	.globl	argv
+	.align	3
+.LC21:
 	.string	"sh"
 	.section	.data.rel.local,"aw"
 	.align	3
@@ -135,10 +138,10 @@ main:
 	.type	argv, @object
 	.size	argv, 16
 argv:
-	.dword	.LC20
+	.dword	.LC21
 	.dword	0
 	.type	tests, @object
-	.size	tests, 136
+	.size	tests, 144
 tests:
 	.dword	.LC3
 	.dword	.LC4
@@ -157,5 +160,6 @@ tests:
 	.dword	.LC17
 	.dword	.LC18
 	.dword	.LC19
+	.dword	.LC20
 	.ident	"GCC: (Ubuntu 11.4.0-1ubuntu1~22.04) 11.4.0"
 	.section	.note.GNU-stack,"",@progbits

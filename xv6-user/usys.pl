@@ -54,3 +54,4 @@ entry("yield");
 entry("execve");
 entry("getppid");
 entry("gettimeofday");
+entry("nanosleep");
