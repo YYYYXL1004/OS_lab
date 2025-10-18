@@ -467,7 +467,8 @@ exit(int status)
   // Parent might be sleeping in wait().
   wakeup1(original_parent);
 
-  p->xstate = status;
+  // 将原始退出状态码左移8位，进行编码，以符合WEXITSTATUS宏的解码规则
+  p->xstate = (status << 8);
   p->state = ZOMBIE;
 
   release(&original_parent->lock);
