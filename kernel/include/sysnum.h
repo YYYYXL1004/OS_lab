@@ -38,4 +38,7 @@
 #define SYS_clone       220
 #define SYS_waitpid     260
 #define SYS_yield       124
+#define SYS_execve      221
+#define SYS_getppid     173
+#define SYS_gettimeofday 169
 #endif

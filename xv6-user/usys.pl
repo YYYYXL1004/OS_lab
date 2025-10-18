@@ -51,3 +51,6 @@ entry("munmap");
 entry("clone");
 entry("waitpid");
 entry("yield");
+entry("execve");
+entry("getppid");
+entry("gettimeofday");

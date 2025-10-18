@@ -31,7 +31,7 @@ main:
 	li	a0,0
 	call	dup@plt
 	li	s0,0
-	li	s2,14
+	li	s2,17
 .L5:
 	call	fork@plt
 	mv	s1,a0
@@ -116,9 +116,18 @@ main:
 	.align	3
 .LC16:
 	.string	"yield"
-	.globl	argv
 	.align	3
 .LC17:
+	.string	"execve"
+	.align	3
+.LC18:
+	.string	"getppid"
+	.align	3
+.LC19:
+	.string	"gettimeofday"
+	.globl	argv
+	.align	3
+.LC20:
 	.string	"sh"
 	.section	.data.rel.local,"aw"
 	.align	3
@@ -126,10 +135,10 @@ main:
 	.type	argv, @object
 	.size	argv, 16
 argv:
-	.dword	.LC17
+	.dword	.LC20
 	.dword	0
 	.type	tests, @object
-	.size	tests, 112
+	.size	tests, 136
 tests:
 	.dword	.LC3
 	.dword	.LC4
@@ -145,5 +154,8 @@ tests:
 	.dword	.LC14
 	.dword	.LC15
 	.dword	.LC16
+	.dword	.LC17
+	.dword	.LC18
+	.dword	.LC19
 	.ident	"GCC: (Ubuntu 11.4.0-1ubuntu1~22.04) 11.4.0"
 	.section	.note.GNU-stack,"",@progbits

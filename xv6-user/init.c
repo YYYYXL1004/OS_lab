@@ -22,6 +22,9 @@ char *tests[] = {
       "wait",
       "waitpid",
       "yield",
+      "execve",
+      "getppid",
+      "gettimeofday",
       // "openat",
       //"shutdown",
   };

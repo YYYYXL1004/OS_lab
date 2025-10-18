@@ -189,3 +189,17 @@ sys_yield(void)
   yield();
   return 0;
 }
+
+uint64
+sys_getppid(void)
+{
+  struct proc *p = myproc();
+  uint64 ppid;
+  // 为了安全访问 p->parent和parent->pid 我们需要加锁
+  // 这样可以防止在读取过程中，父进程突然退出 导致指针失败
+  acquire(&p->lock);
+  ppid = p->parent->pid;
+  release(&p->lock);
+
+  return ppid;
+}

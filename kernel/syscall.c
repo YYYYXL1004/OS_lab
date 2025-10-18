@@ -130,6 +130,8 @@ extern uint64 sys_munmap(void);
 extern uint64 sys_clone(void);
 extern uint64 sys_waitpid(void);
 extern uint64 sys_yield(void);
+extern uint64 sys_getppid(void);
+extern uint64 sys_gettimeofday(void);
 
 static uint64 (*syscalls[])(void) = {
   [SYS_fork]        sys_fork,
@@ -168,6 +170,9 @@ static uint64 (*syscalls[])(void) = {
   [SYS_clone]       sys_clone,
   [SYS_waitpid]     sys_waitpid,
   [SYS_yield]       sys_yield,
+  [SYS_execve]      sys_exec,
+  [SYS_getppid]     sys_getppid,
+  [SYS_gettimeofday]sys_gettimeofday,
 };
 
 static char *sysnames[] = {
@@ -207,6 +212,9 @@ static char *sysnames[] = {
   [SYS_clone]       "clone",
   [SYS_waitpid]     "waitpid",
   [SYS_yield]       "yield",
+  [SYS_execve]      "execve",
+  [SYS_getppid]     "getppid",
+  [SYS_gettimeofday]"gettimeofday",
 };
 
 void
@@ -443,5 +451,39 @@ sys_munmap(void)
   }
 
   // 3. 成功，根据 munmap 的规范，返回 0
+  return 0;
+}
+
+struct timeval{
+  uint64 tv_sec;
+  uint64 tv_usec;
+};
+
+extern uint64 ticks;
+extern struct spinlock tickslock;
+
+uint64
+sys_gettimeofday(void)
+{
+  uint64 user_tv_addr;
+  struct timeval tv;
+  uint64 current_ticks;
+
+  // 获取用户空间传入的 timeval结构体指针
+  if(argaddr(0, &user_tv_addr) < 0) {
+    return -1;
+  }
+  // 获取当前的ticks数， 需要加锁确保原子性
+  acquire(&tickslock);
+  current_ticks = ticks;
+  release(&tickslock);  
+  // 基于100Hz的假设，将ticks转换成s和us
+  tv.tv_sec = current_ticks / 100;
+  tv.tv_usec = (current_ticks%100) * 10000; // 1tick = 10ms =10000us
+  // 把内核中计算好的 timeval 拷贝回用户空间
+  if(copyout2(user_tv_addr, (char *)&tv, sizeof(tv))<0) {
+    return -1;
+  }
+  // 成功返回0
   return 0;
 }
