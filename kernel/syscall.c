@@ -470,19 +470,17 @@ sys_gettimeofday(void)
 {
   uint64 user_tv_addr;
   struct timeval tv;
-  uint64 current_ticks;
 
   // 获取用户空间传入的 timeval结构体指针
   if(argaddr(0, &user_tv_addr) < 0) {
     return -1;
   }
-  // 获取当前的ticks数， 需要加锁确保原子性
-  acquire(&tickslock);
-  current_ticks = ticks;
-  release(&tickslock);  
-  // 基于100Hz的假设，将ticks转换成s和us
-  tv.tv_sec = current_ticks / 100;
-  tv.tv_usec = (current_ticks%100) * 10000; // 1tick = 10ms =10000us
+  uint64 current_cycles = r_time();
+  const uint64 CLOCK_FREQ = 10000000;
+
+  tv.tv_sec = current_cycles / CLOCK_FREQ;
+  tv.tv_usec = (current_cycles % CLOCK_FREQ) * 1000000 / CLOCK_FREQ;
+
   // 把内核中计算好的 timeval 拷贝回用户空间
   if(copyout2(user_tv_addr, (char *)&tv, sizeof(tv))<0) {
     return -1;
