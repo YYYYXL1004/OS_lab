@@ -16,7 +16,13 @@ char *tests[] = {
       "brk",
       "mmap",
       "munmap",
-      "openat",
+      "fork",
+      "exit",
+      "clone",
+      "wait",
+      "waitpid",
+      "yield",
+      // "openat",
       //"shutdown",
   };
 int main(void)

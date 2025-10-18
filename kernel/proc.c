@@ -477,59 +477,125 @@ exit(int status)
   panic("zombie exit");
 }
 
-// Wait for a child process to exit and return its pid.
-// Return -1 if this process has no children.
+// wait 函数等待一个子进程退出，回收其资源，并返回其 PID。
+// 如果该进程没有任何子进程，则返回 -1。
+// 如果 addr 非零，则将子进程的退出状态码写入到 addr 指向的用户空间地址。
+// 新增的 pid_to_wait 参数用于实现 waitpid 的功能：
+//  - 如果 pid_to_wait == -1，则等待任意一个子进程 (同传统 wait)。
+//  - 如果 pid_to_wait > 0，则只等待 PID 与之相等的那个子进程。
 int
-wait(uint64 addr)
+wait(uint64 addr, int pid_to_wait)
 {
   struct proc *np;
   int havekids, pid;
-  struct proc *p = myproc();
+  struct proc *p = myproc(); // 获取当前进程（父进程）的指针
 
-  // hold p->lock for the whole time to avoid lost
-  // wakeups from a child's exit().
+  // 在整个函数执行期间，我们都持有父进程的锁 p->lock。
+  // 这是为了防止“丢失唤醒”问题：即在我们检查完所有子进程但还未调用 sleep() 之前，
+  // 一个子进程恰好退出并尝试唤醒我们，如果我们不持有锁，这个唤醒就会丢失。
   acquire(&p->lock);
 
-  for(;;){
-    // Scan through table looking for exited children.
+  for(;;){ // 无限循环，直到找到一个退出的子进程或确定没有子进程可等。
+    // 在每一轮循环开始时，扫描整个进程表，寻找符合条件的子进程。
     havekids = 0;
     for(np = proc; np < &proc[NPROC]; np++){
-      // this code uses np->parent without holding np->lock.
-      // acquiring the lock first would cause a deadlock,
-      // since np might be an ancestor, and we already hold p->lock.
+      // 检查 np 是否是当前进程 p 的子进程。
+      // 这里可以安全地读取 np->parent 而不持有 np->lock，
+      // 因为只有父进程（也就是我们自己）可以改变这个字段。
       if(np->parent == p){
-        // np->parent can't change between the check and the acquire()
-        // because only the parent changes it, and we're the parent.
-        acquire(&np->lock);
-        havekids = 1;
-        if(np->state == ZOMBIE){
-          // Found one.
-          pid = np->pid;
-          if(addr != 0 && copyout2(addr, (char *)&np->xstate, sizeof(np->xstate)) < 0) {
+        // 检查这个子进程是否是我们想要等待的那个。
+        // 要么我们等待任意子进程(-1)，要么这个子进程的PID匹配我们指定的PID。
+        if(pid_to_wait == -1 || np->pid == pid_to_wait) {
+          // 在检查或修改子进程的状态之前，必须获取它的锁。
+          acquire(&np->lock);
+          havekids = 1; // 标记我们至少找到了一个符合条件的子进程。
+          if(np->state == ZOMBIE){
+            // 找到了一个已经退出（处于僵尸状态）的子进程，这就是我们要找的！
+            pid = np->pid;
+            // 如果用户提供了有效的地址 (addr != 0)，就把子进程的退出状态码 (xstate) 拷贝过去。
+            if(addr != 0 && copyout2(addr, (char *)&np->xstate, sizeof(np->xstate)) < 0) {
+              // 如果拷贝失败（比如 addr 是一个非法地址），
+              // 我们必须释放所有已持有的锁，然后返回错误。
+              release(&np->lock); // !!! 关键修复：在这里必须释放子进程的锁！
+              release(&p->lock);
+              return -1;
+            }
+            // 释放子进程占用的资源（回收进程结构体、页表等）。
+            freeproc(np);
+            // 依次释放子进程和父进程的锁。
             release(&np->lock);
             release(&p->lock);
-            return -1;
+            // 成功，返回退出的子进程的 PID。
+            return pid;
           }
-          freeproc(np);
+          // 如果子进程还活着，就释放它的锁，继续寻找下一个。
           release(&np->lock);
-          release(&p->lock);
-          return pid;
         }
-        release(&np->lock);
       }
     }
 
-    // No point waiting if we don't have any children.
+    // 扫描完一轮后，如果没有找到任何符合条件的子进程，或者当前进程自身被杀死了，
+    // 那么就没有必要再等下去了。
     if(!havekids || p->killed){
       release(&p->lock);
       return -1;
     }
     
-    // Wait for a child to exit.
-    sleep(p, &p->lock);  //DOC: wait-sleep
+    // 如果有子进程但它们都还没退出，那么父进程就调用 sleep 进入休眠状态。
+    // sleep 会原子地释放 p->lock 并让进程休眠，被唤醒后会重新获取 p->lock。
+    sleep(p, &p->lock);
   }
 }
 
+// Create a new process, copying the parent.
+// The new process will start executing with the stack provided.
+// Returns child's PID on success, -1 on failure.
+int
+clone(uint64 stack)
+{
+  int i, pid;
+  struct proc *np;
+  struct proc *p = myproc();
+
+  // Allocate process.
+  if((np = allocproc()) == NULL){
+    return -1;
+  }
+
+  // Copy user memory from parent to child.
+  if(uvmcopy(p->pagetable, np->pagetable, np->kpagetable, p->sz) < 0){
+    freeproc(np);
+    release(&np->lock);
+    return -1;
+  }
+  np->sz = p->sz;
+  np->parent = p;
+  // np->tmask = p->tmask;
+  // copy saved user registers.
+  *(np->trapframe) = *(p->trapframe);
+
+  // --- clone 的核心修改 ---
+  // 1. 将子进程的返回寄存器(a0)设置为0。
+  np->trapframe->a0 = 0;
+  // 2. 将子进程的栈指针(sp)设置为用户传递的新栈地址。
+  np->trapframe->sp = stack;
+
+  // increment reference counts on open file descriptors.
+  for(i = 0; i < NOFILE; i++)
+    if(p->ofile[i])
+      np->ofile[i] = filedup(p->ofile[i]);
+  np->cwd = edup(p->cwd);
+
+  safestrcpy(np->name, p->name, sizeof(p->name));
+
+  pid = np->pid;
+
+  np->state = RUNNABLE;
+
+  release(&np->lock);
+
+  return pid;
+}
 // Per-CPU process scheduler.
 // Each CPU calls scheduler() after setting itself up.
 // Scheduler never returns.  It loops, doing:

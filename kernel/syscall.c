@@ -127,6 +127,9 @@ extern uint64 sys_brk(void);
 extern uint64 sys_mmap(void);
 extern uint64 sys_openat(void);
 extern uint64 sys_munmap(void);
+extern uint64 sys_clone(void);
+extern uint64 sys_waitpid(void);
+extern uint64 sys_yield(void);
 
 static uint64 (*syscalls[])(void) = {
   [SYS_fork]        sys_fork,
@@ -162,6 +165,9 @@ static uint64 (*syscalls[])(void) = {
   [SYS_mmap]        sys_mmap,
   [SYS_openat]      sys_openat,
   [SYS_munmap]      sys_munmap,
+  [SYS_clone]       sys_clone,
+  [SYS_waitpid]     sys_waitpid,
+  [SYS_yield]       sys_yield,
 };
 
 static char *sysnames[] = {
@@ -198,6 +204,9 @@ static char *sysnames[] = {
   [SYS_mmap]        "mmap",
   [SYS_openat]      "openat",
   [SYS_munmap]      "munmap",
+  [SYS_clone]       "clone",
+  [SYS_waitpid]     "waitpid",
+  [SYS_yield]       "yield",
 };
 
 void

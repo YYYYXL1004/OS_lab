@@ -31,7 +31,7 @@ main:
 	li	a0,0
 	call	dup@plt
 	li	s0,0
-	li	s2,9
+	li	s2,14
 .L5:
 	call	fork@plt
 	mv	s1,a0
@@ -100,10 +100,25 @@ main:
 	.string	"munmap"
 	.align	3
 .LC11:
-	.string	"openat"
-	.globl	argv
+	.string	"fork"
 	.align	3
 .LC12:
+	.string	"exit"
+	.align	3
+.LC13:
+	.string	"clone"
+	.align	3
+.LC14:
+	.string	"wait"
+	.align	3
+.LC15:
+	.string	"waitpid"
+	.align	3
+.LC16:
+	.string	"yield"
+	.globl	argv
+	.align	3
+.LC17:
 	.string	"sh"
 	.section	.data.rel.local,"aw"
 	.align	3
@@ -111,10 +126,10 @@ main:
 	.type	argv, @object
 	.size	argv, 16
 argv:
-	.dword	.LC12
+	.dword	.LC17
 	.dword	0
 	.type	tests, @object
-	.size	tests, 72
+	.size	tests, 112
 tests:
 	.dword	.LC3
 	.dword	.LC4
@@ -125,5 +140,10 @@ tests:
 	.dword	.LC9
 	.dword	.LC10
 	.dword	.LC11
+	.dword	.LC12
+	.dword	.LC13
+	.dword	.LC14
+	.dword	.LC15
+	.dword	.LC16
 	.ident	"GCC: (Ubuntu 11.4.0-1ubuntu1~22.04) 11.4.0"
 	.section	.note.GNU-stack,"",@progbits

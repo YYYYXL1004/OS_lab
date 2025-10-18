@@ -83,7 +83,19 @@ sys_wait(void)
   uint64 p;
   if(argaddr(0, &p) < 0)
     return -1;
-  return wait(p);
+  return wait(p, -1);
+}
+
+uint64
+sys_waitpid(void)
+{
+  uint64 p_status;
+  int pid;
+
+  if(argint(0, &pid) < 0 || argaddr(1, &p_status) < 0) {
+    return -1;
+  }
+  return wait(p_status, pid);
 }
 
 uint64
@@ -152,5 +164,29 @@ sys_trace(void)
     return -1;
   }
   myproc()->tmask = mask;
+  return 0;
+}
+
+uint64
+sys_clone(void)
+{
+  // uint64 flags, stack;
+
+  // // 从用户寄存器获取参数。根据 clone.s 的约定，
+  // // a0 是 flags，a1 是新的栈顶地址 stack。
+  // // 我们当前只需要 stack。
+  // if (argaddr(0, &flags) < 0 || argaddr(1, &stack) < 0) {
+  //     return -1;
+  // }
+
+  // // 调用 proc.c 中实现的 clone 核心逻辑
+  // return clone(stack);
+  return fork();
+}
+
+uint64
+sys_yield(void)
+{
+  yield();
   return 0;
 }

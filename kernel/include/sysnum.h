@@ -35,4 +35,7 @@
 #define SYS_mmap        222
 #define SYS_openat      56
 #define SYS_munmap      215
+#define SYS_clone       220
+#define SYS_waitpid     260
+#define SYS_yield 124
 #endif

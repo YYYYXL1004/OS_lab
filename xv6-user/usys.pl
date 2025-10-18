@@ -48,3 +48,6 @@ entry("brk");
 entry("mmap");
 entry("openat");
 entry("munmap");
+entry("clone");
+entry("waitpid");
+entry("yield");
