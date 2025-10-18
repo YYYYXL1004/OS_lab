@@ -170,18 +170,17 @@ sys_trace(void)
 uint64
 sys_clone(void)
 {
-  // uint64 flags, stack;
+  uint64 flags, stack;
 
-  // // 从用户寄存器获取参数。根据 clone.s 的约定，
-  // // a0 是 flags，a1 是新的栈顶地址 stack。
-  // // 我们当前只需要 stack。
-  // if (argaddr(0, &flags) < 0 || argaddr(1, &stack) < 0) {
-  //     return -1;
-  // }
+  // 根据Linux的约定，a0是flags, a1是stack
+  // 我们在内核里虽然不用flags，但必须正确地获取第二个参数stack
+  if (argaddr(0, &flags) < 0 || argaddr(1, &stack) < 0) {
+      return -1;
+  }
 
-  // // 调用 proc.c 中实现的 clone 核心逻辑
-  // return clone(stack);
-  return fork();
+  // 调用 proc.c 中实现的 clone 核心逻辑
+  // 这里的 clone 只需要 stack 参数
+  return clone(stack);
 }
 
 uint64

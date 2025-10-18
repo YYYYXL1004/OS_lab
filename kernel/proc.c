@@ -570,15 +570,19 @@ clone(uint64 stack)
   }
   np->sz = p->sz;
   np->parent = p;
-  // np->tmask = p->tmask;
+  
   // copy saved user registers.
   *(np->trapframe) = *(p->trapframe);
 
   // --- clone 的核心修改 ---
   // 1. 将子进程的返回寄存器(a0)设置为0。
   np->trapframe->a0 = 0;
-  // 2. 将子进程的栈指针(sp)设置为用户传递的新栈地址。
-  np->trapframe->sp = stack;
+  
+  // 2. 如果用户提供了新的栈地址，就使用它。
+  //    注意：我们不修改 epc！子进程会从 syscall 返回，和父进程一样。
+  if (stack != 0) {
+    np->trapframe->sp = stack;
+  }
 
   // increment reference counts on open file descriptors.
   for(i = 0; i < NOFILE; i++)
