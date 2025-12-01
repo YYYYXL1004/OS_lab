@@ -195,7 +195,15 @@ sys_openat(void)
       return -1;
     }
     elock(ep);
-    if((ep->attribute & ATTR_DIRECTORY) && omode != O_RDONLY){
+    // 1. 如果指定了 O_DIRECTORY，但打开的不是目录，则报错
+    if((omode & O_DIRECTORY) && !(ep->attribute & ATTR_DIRECTORY)){
+      eunlock(ep);
+      eput(ep);
+      return -1;
+    }
+
+    // 2. 如果是目录，且使用了 写权限，则报错
+    if((ep->attribute & ATTR_DIRECTORY) && (omode & (O_WRONLY|O_RDWR))){
       eunlock(ep);
       eput(ep);
       return -1;
@@ -249,7 +257,15 @@ sys_open(void)
       return -1;
     }
     elock(ep);
-    if((ep->attribute & ATTR_DIRECTORY) && omode != O_RDONLY){
+    // 1. 如果指定了 O_DIRECTORY，但打开的不是目录，则报错
+    if((omode & O_DIRECTORY) && !(ep->attribute & ATTR_DIRECTORY)){
+      eunlock(ep);
+      eput(ep);
+      return -1;
+    }
+
+    // 2. 如果是目录，且使用了 写权限，则报错
+    if((ep->attribute & ATTR_DIRECTORY) && (omode & (O_WRONLY|O_RDWR))){
       eunlock(ep);
       eput(ep);
       return -1;
