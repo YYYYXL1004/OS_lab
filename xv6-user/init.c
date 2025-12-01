@@ -8,6 +8,11 @@
 
 char *argv[] = { "sh", 0 };
 char *tests[] = {
+      "openat",
+      "open",
+      "close",
+      "mkdir",
+      "read",
       "getcwd",
       "getpid",
       "write",
@@ -26,7 +31,6 @@ char *tests[] = {
       "getppid",
       "gettimeofday",
       "sleep",
-      // "openat",
       //"shutdown",
   };
 int main(void)

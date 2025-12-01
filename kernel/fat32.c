@@ -886,13 +886,18 @@ static char *skipelem(char *path, char *name)
 }
 
 // FAT32 version of namex in xv6's original file system.
-static struct dirent *lookup_path(char *path, int parent, char *name)
+// 修改 lookup_path 的签名，增加 base 参数
+// base: 如果路径是相对路径，且 base 不为 NULL，则从 base 开始查找；
+//       如果 base 为 NULL，则从当前进程的 cwd 开始查找。
+//       如果 path 是绝对路径（以 '/' 开头），base 被忽略。
+static struct dirent *lookup_path(struct dirent *base, char *path, int parent, char *name)
 {
     struct dirent *entry, *next;
     if (*path == '/') {
         entry = edup(&root);
     } else if (*path != '\0') {
-        entry = edup(myproc()->cwd);
+        // 核心修改：如果提供了 base，就用 base；否则用 cwd
+        entry = edup(base ? base : myproc()->cwd);
     } else {
         return NULL;
     }
@@ -922,14 +927,26 @@ static struct dirent *lookup_path(char *path, int parent, char *name)
     }
     return entry;
 }
-
-struct dirent *ename(char *path)
+// 更新原有的 wrappers，传入 NULL 以保持原有行为（使用 cwd）
+struct dirent *ename(char *path) // 查找 path 对应的文件或目录。
 {
     char name[FAT32_MAX_FILENAME + 1];
-    return lookup_path(path, 0, name);
+    return lookup_path(NULL, path, 0, name);
+}
+// 查找 path 所在的父目录，并将文件名填入 name
+struct dirent *enameparent(char *path, char *name) 
+{
+    return lookup_path(NULL, path, 1, name);
 }
 
-struct dirent *enameparent(char *path, char *name)
+// 新增：支持指定环境目录的查找函数（供 sys_openat 使用）
+struct dirent *ename_env(struct dirent* env, char *path)
 {
-    return lookup_path(path, 1, name);
+  char name[FAT32_MAX_FILENAME + 1];
+  return lookup_path(env, path, 0, name);
+}
+
+struct dirent *enameparent_env(struct dirent* env, char *path, char *name)
+{
+  return lookup_path(env, path, 1, name);
 }

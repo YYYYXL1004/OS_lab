@@ -120,14 +120,15 @@ sys_fstat(void)
     return -1;
   return filestat(f, st);
 }
-
+// 1. 重构 create 函数，增加 base 参数
 static struct dirent*
-create(char *path, short type, int mode)
+create(struct dirent *base, char *path, short type, int mode)
 {
   struct dirent *ep, *dp;
   char name[FAT32_MAX_FILENAME + 1];
 
-  if((dp = enameparent(path, name)) == NULL)
+  // 使用 enameparent_env 代替 enameparent
+  if((dp = enameparent_env(base, path, name)) == NULL)
     return NULL;
 
   if (type == T_DIR) {
@@ -159,7 +160,73 @@ create(char *path, short type, int mode)
   elock(ep);
   return ep;
 }
+// 2. 实现 sys_openat
+uint64
+sys_openat(void)
+{
+  char path[FAT32_MAX_PATH];
+  int fd, omode, dirfd;
+  struct file *f;
+  struct dirent *ep;
+  struct dirent *base = NULL; // 默认为 NULL，表示相对于 CWD
 
+  // 获取参数：dirfd(0), path(1), omode(2)
+  if(argint(0, &dirfd) < 0 || argstr(1, path, FAT32_MAX_PATH) < 0 || argint(2, &omode) < 0)
+    return -1;
+
+  // 确定查找的基准目录 (base)
+  if (path[0] != '/' && dirfd != AT_FDCWD) {
+      // 如果是相对路径，且 dirfd 不是 AT_FDCWD，则需要从 dirfd 获取 base
+      if (dirfd < 0 || dirfd >= NOFILE || (f = myproc()->ofile[dirfd]) == 0 || f->type != FD_ENTRY) {
+          return -1; // 无效的 dirfd
+      }
+      base = f->ep; 
+  }
+
+  if(omode & O_CREATE){
+    // 调用带 base 的 create
+    ep = create(base, path, T_FILE, omode);
+    if(ep == NULL){
+      return -1;
+    }
+  } else {
+    // 调用带 base 的 ename
+    if((ep = ename_env(base, path)) == NULL){
+      return -1;
+    }
+    elock(ep);
+    if((ep->attribute & ATTR_DIRECTORY) && omode != O_RDONLY){
+      eunlock(ep);
+      eput(ep);
+      return -1;
+    }
+  }
+
+  if((f = filealloc()) == NULL || (fd = fdalloc(f)) < 0){
+    if (f) {
+      fileclose(f);
+    }
+    eunlock(ep);
+    eput(ep);
+    return -1;
+  }
+
+  if(!(ep->attribute & ATTR_DIRECTORY) && (omode & O_TRUNC)){
+    etrunc(ep);
+  }
+
+  f->type = FD_ENTRY;
+  f->off = (omode & O_APPEND) ? ep->file_size : 0;
+  f->ep = ep;
+  f->readable = !(omode & O_WRONLY);
+  f->writable = (omode & O_WRONLY) || (omode & O_RDWR);
+
+  eunlock(ep);
+
+  return fd;
+}
+
+// 3. 更新 sys_open，使其兼容新的 create 接口
 uint64
 sys_open(void)
 {
@@ -172,7 +239,8 @@ sys_open(void)
     return -1;
 
   if(omode & O_CREATE){
-    ep = create(path, T_FILE, omode);
+    // 传入 NULL 作为 base，表示使用 CWD
+    ep = create(NULL, path, T_FILE, omode);
     if(ep == NULL){
       return -1;
     }
@@ -212,69 +280,15 @@ sys_open(void)
   return fd;
 }
 
-uint64
-sys_openat(void)
-{
-  char path[FAT32_MAX_PATH];
-  int fd, omode;
-  struct file *f;
-  struct dirent *ep;
-
-  // 主要区别在这里：从 arg(1) 和 arg(2) 获取参数
-  // arg(0) 是 dirfd，我们暂时忽略它
-  if(argstr(1, path, FAT32_MAX_PATH) < 0 || argint(2, &omode) < 0)
-    return -1;
-  // printf("[kernel] sys_openat: path=%s, omode=0x%x\n", path, omode);
-  // 直接把 sys_open 的全部代码复制过来就行
-
-  if(omode & O_CREATE){ 
-    ep = create(path, T_FILE, omode);
-    if(ep == NULL){
-      return -1;
-    }
-  } else {
-    if((ep = ename(path)) == NULL){
-      return -1;
-    }
-    elock(ep);
-    if((ep->attribute & ATTR_DIRECTORY) && omode != O_RDONLY){
-      eunlock(ep);
-      eput(ep);
-      return -1;
-    }
-  }
-
-  if((f = filealloc()) == NULL || (fd = fdalloc(f)) < 0){
-    if (f) {
-      fileclose(f);
-    }
-    eunlock(ep);
-    eput(ep);
-    return -1;
-  }
-
-  if(!(ep->attribute & ATTR_DIRECTORY) && (omode & O_TRUNC)){
-    etrunc(ep);
-  }
-
-  f->type = FD_ENTRY;
-  f->off = (omode & O_APPEND) ? ep->file_size : 0;
-  f->ep = ep;
-  f->readable = !(omode & O_WRONLY);
-  f->writable = (omode & O_WRONLY) || (omode & O_RDWR);
-
-  eunlock(ep);
-
-  return fd;
-}
-
+// 4. 更新 sys_mkdir，因为 create 的签名变了
 uint64
 sys_mkdir(void)
 {
   char path[FAT32_MAX_PATH];
   struct dirent *ep;
 
-  if(argstr(0, path, FAT32_MAX_PATH) < 0 || (ep = create(path, T_DIR, 0)) == 0){
+  // 传入 NULL 作为 base
+  if(argstr(0, path, FAT32_MAX_PATH) < 0 || (ep = create(NULL, path, T_DIR, 0)) == 0){
     return -1;
   }
   eunlock(ep);

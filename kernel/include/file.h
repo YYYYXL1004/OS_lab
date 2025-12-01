@@ -2,14 +2,15 @@
 #define __FILE_H
 
 struct file {
-  enum { FD_NONE, FD_PIPE, FD_ENTRY, FD_DEVICE } type;
-  int ref; // reference count
-  char readable;
-  char writable;
-  struct pipe *pipe; // FD_PIPE
-  struct dirent *ep;
-  uint off;          // FD_ENTRY
-  short major;       // FD_DEVICE
+  enum { FD_NONE, FD_PIPE, FD_ENTRY, FD_DEVICE } type; // 文件描述符的类型
+  // FD_NONE 空闲、无效; FD_PIPE 管道；FD_ENTRY 普通文件或目录; FD_DEVICE 设备文件 
+  int ref; // reference count 记录有多少个文件描述符（或进程）指向这个打开的文件结构。
+  char readable;  // 可读标志,非 0 表示该文件是以读权限打开的。
+  char writable;  // 可写标志,非 0 表示该文件是以写权限打开的。
+  struct pipe *pipe; // FD_PIPE 指向具体的管道结构体
+  struct dirent *ep; // 指向文件系统中的 struct dirent，代表磁盘上的实际文件。
+  uint off;          // FD_ENTRY 偏移量,记录当前读写操作在文件中的位置（字节数）
+  short major;       // FD_DEVICE 标识具体的设备驱动程序
 };
 
 // #define major(dev)  ((dev) >> 16 & 0xFFFF)
