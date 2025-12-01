@@ -78,6 +78,7 @@ CFLAGS += -MD
 CFLAGS += -mcmodel=medany
 CFLAGS += -ffreestanding -fno-common -nostdlib -mno-relax
 CFLAGS += -I.
+CFLAGS += -I./kernel/include
 CFLAGS += $(shell $(CC) -fno-stack-protector -E -x c /dev/null >/dev/null 2>&1 && echo -fno-stack-protector)
 
 ifeq ($(mode), debug) 
@@ -105,6 +106,14 @@ $T/kernel: $(OBJS) $(linker) $U/initcode
 	@$(OBJDUMP) -S $T/kernel > $T/kernel.asm
 	@$(OBJDUMP) -t $T/kernel | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $T/kernel.sym
   
+#all: build fs run
+#	cp kernel kernel-qemu
+#	cp path/to/sbi sbi-qemu
+
+all: build fs run
+	@cp $(T)/kernel ./kernel-qemu
+	@cp ./bootloader/SBI/sbi-qemu ./sbi-qemu
+
 build: $T/kernel userprogs
 
 # Compile RustSBI
@@ -126,7 +135,7 @@ k210 = $T/k210.bin
 k210-serialport := /dev/ttyUSB0
 
 ifndef CPUS
-CPUS := 1
+CPUS :=1
 endif
 
 QEMUOPTS = -machine virt -kernel $T/kernel -m 32M -nographic
@@ -223,15 +232,16 @@ fs: $(UPROGS)
 		echo "making fs image..."; \
 		dd if=/dev/zero of=fs.img bs=512k count=512; \
 		mkfs.vfat -F 32 fs.img; fi
-	@ mount fs.img $(dst)
+	@ mount -o loop -t vfat fs.img $(dst)
+	@ mount | grep $(dst)
 	@if [ ! -d "$(dst)/bin" ]; then  mkdir $(dst)/bin; fi
 	@ cp README $(dst)/README
 	@for file in $$( ls $U/_* ); do \
-		 cp $$file $(dst)/$${file#$U/_}; \
-		 cp $$file $(dst)/bin/$${file#$U/_}; \
-	done
-	@cp -R riscv64/* $(dst)
+		 cp $$file $(dst)/$${file#$U/_};\
+		 cp $$file $(dst)/bin/$${file#$U/_}; done
+	@cp -r riscv64/* $(dst)
 	@ umount $(dst)
+
 
 # Write mounted sdcard
 sdcard: userprogs
@@ -252,33 +262,12 @@ clean:
 	$U/usys.S \
 	$(UPROGS)
 
-# my_init:
-# 	riscv64-linux-gnu-objcopy -S -O binary xv6-user/_init oo
-# 	od -v -t x1 -An oo | sed -E 's/ (.{2})/0x\1,/g' > kernel/include/initcode.h
-# 	rm oo
 
-my_init:
-	@make build
-	$(CC) -Os -ffreestanding -fno-common -nostdlib -mno-relax -I. -Ikernel -S $U/init.c -o $U/init.S
-	$(CC) -Os -fno-unroll-loops -fmerge-all-constants -ffreestanding -fno-common -nostdlib -mno-relax -I. -Ikernel -c $U/init.c -o $U/init.o
+dump: all
+	$(CC) $(USER_CFLAGS) -Os -ffreestanding -fno-common -nostdlib -mno-relax -I. -Ikernel -S $U/init.c -o $U/init.S
+	$(CC) $(USER_CFLAGS) -Os -s -fno-unroll-loops -fmerge-all-constants -ffreestanding -fno-common -nostdlib -mno-relax -I. -Ikernel -c $U/init.c -o $U/init.o
 	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $U/_init $U/init.o $U/usys.o $U/printf.o
 	$(OBJCOPY) -S -O binary $U/_init oo
 	$(OBJDUMP) -S $U/_init > $U/init.asm
 	od -v -t x1 -An oo | sed -E 's/ (.{2})/0x\1,/g' > kernel/include/initcode.h
 	rm oo
-
-# all完成编译、拷贝、重命名的三项任务	
-all: build
-	@cp $(T)/kernel ./kernel-qemu
-	@cp ./bootloader/SBI/sbi-qemu ./sbi-qemu
-
-my_local:
-	@make clean
-	@make my_init
-	@make fs
-
-# all: build RUSTSBI
-# 	@cp $(T)/kernel ./kernel-qemu
-# 	@cp ./bootloader/SBI/sbi-qemu ./sbi-qemu
-
-
