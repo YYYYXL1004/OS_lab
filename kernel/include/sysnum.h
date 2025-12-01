@@ -12,6 +12,7 @@
 #define SYS_fstat        80
 #define SYS_chdir        9
 #define SYS_dup         10
+#define SYS_dup2        24
 #define SYS_getpid      172
 #define SYS_sbrk        12
 #define SYS_sleep       13
@@ -25,7 +26,7 @@
 #define SYS_close       57
 #define SYS_test_proc   22
 #define SYS_dev         23
-#define SYS_readdir     24
+#define SYS_readdir     666
 #define SYS_getcwd      17
 #define SYS_rename      26
 #define SYS_shutdown    10001

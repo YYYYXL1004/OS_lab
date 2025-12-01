@@ -55,3 +55,4 @@ entry("execve");
 entry("getppid");
 entry("gettimeofday");
 entry("nanosleep");
+entry("dup2");

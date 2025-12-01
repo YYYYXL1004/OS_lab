@@ -3,9 +3,9 @@
 
 #define NPROC        50  // maximum number of processes
 #define NCPU          2  // maximum number of CPUs
-#define NOFILE       16  // open files per process
+#define NOFILE       128  // 从 16 改为 128，以支持 dup2 到 fd 100
 #define NFILE       100  // open files per system
-#define NINODE       50  // maximum number of active i-nodes
+#define NINODE      500   //从 100 增加到 500，避免系统文件表满了
 #define NDEV         10  // maximum major device number
 #define ROOTDEV       1  // device number of file system root disk
 #define MAXARG       32  // max exec arguments

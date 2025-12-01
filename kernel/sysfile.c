@@ -64,14 +64,56 @@ sys_dup(void)
   struct file *f;
   int fd;
 
+  // 获取旧的文件描述符
   if(argfd(0, 0, &f) < 0)
     return -1;
+  
+  // 分配一个新的最小可用 fd
   if((fd=fdalloc(f)) < 0)
     return -1;
+  
+  // 增加引用计数
   filedup(f);
   return fd;
 }
 
+// 新增 sys_dup2 
+uint64
+sys_dup3(void)
+{
+  struct file *f;
+  int oldfd, newfd, flags;
+
+  // 获取参数: oldfd(0), newfd(1), flags(2)
+  if(argfd(0, &oldfd, &f) < 0) 
+    return -1;
+  
+  if(argint(1, &newfd) < 0 || argint(2, &flags) < 0)
+    return -1;
+
+  // [关键] 检查 newfd 是否在合法范围内 (依赖 param.h 中的 NOFILE)
+  if(newfd < 0 || newfd >= NOFILE)
+    return -1;
+
+  // 如果 oldfd 和 newfd 相同，直接返回 newfd，不做操作
+  if(oldfd == newfd)
+    return newfd;
+
+  struct proc *p = myproc();
+
+  // 如果 newfd 已经打开，先关闭它
+  if(p->ofile[newfd]){
+    struct file *f2 = p->ofile[newfd];
+    p->ofile[newfd] = 0; 
+    fileclose(f2);
+  }
+
+  // 执行复制
+  p->ofile[newfd] = f;
+  filedup(f);
+
+  return newfd;
+}
 uint64
 sys_read(void)
 {

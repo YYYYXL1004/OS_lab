@@ -133,6 +133,7 @@ extern uint64 sys_yield(void);
 extern uint64 sys_getppid(void);
 extern uint64 sys_gettimeofday(void);
 extern uint64 sys_nanosleep(void);
+extern uint64 sys_dup3(void);
 
 static uint64 (*syscalls[])(void) = {
   [SYS_fork]        sys_fork,
@@ -175,6 +176,7 @@ static uint64 (*syscalls[])(void) = {
   [SYS_getppid]     sys_getppid,
   [SYS_gettimeofday]sys_gettimeofday,
   [SYS_nanosleep]   sys_nanosleep,
+  [SYS_dup2]        sys_dup3,
 };
 
 static char *sysnames[] = {
@@ -218,6 +220,7 @@ static char *sysnames[] = {
   [SYS_getppid]     "getppid",
   [SYS_gettimeofday]"gettimeofday",
   [SYS_nanosleep]   "nanosleep",
+  [SYS_dup2]        "dup2",
 };
 
 void
