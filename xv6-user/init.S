@@ -17,21 +17,21 @@
 	.globl	main
 	.type	main, @function
 main:
-	addi	sp,sp,-32
+	addi	sp,sp,-48
 	li	a2,0
 	li	a1,1
 	li	a0,2
-	sd	ra,24(sp)
-	sd	s0,16(sp)
-	sd	s2,0(sp)
-	sd	s1,8(sp)
+	sd	ra,40(sp)
+	sd	s0,32(sp)
+	sd	s2,16(sp)
+	sd	s1,24(sp)
 	call	dev@plt
 	li	a0,0
 	call	dup@plt
 	li	a0,0
 	call	dup@plt
 	li	s0,0
-	li	s2,29
+	li	s2,32
 .L5:
 	call	fork@plt
 	mv	s1,a0
@@ -42,12 +42,15 @@ main:
 	j	.L10
 .L2:
 	bne	a0,zero,.L3
-	lla	a1,.LANCHOR0
+	lla	a5,.LANCHOR0
 	slli	s0,s0,3
-	add	s0,a1,s0
-	ld	a0,16(s0)
+	add	s0,a5,s0
+	ld	a0,0(s0)
+	mv	a1,sp
+	sd	zero,8(sp)
+	sd	a0,0(sp)
 	call	exec@plt
-	ld	a1,16(s0)
+	ld	a1,0(s0)
 	lla	a0,.LC1
 	call	printf@plt
 .L10:
@@ -64,12 +67,12 @@ main:
 	addiw	s0,s0,1
 	bne	s0,s2,.L5
 	call	shutdown@plt
-	ld	ra,24(sp)
-	ld	s0,16(sp)
-	ld	s1,8(sp)
-	ld	s2,0(sp)
+	ld	ra,40(sp)
+	ld	s0,32(sp)
+	ld	s1,24(sp)
+	ld	s2,16(sp)
 	li	a0,0
-	addi	sp,sp,32
+	addi	sp,sp,48
 	jr	ra
 	.size	main, .-main
 	.globl	tests
@@ -106,75 +109,79 @@ main:
 	.string	"unlink"
 	.align	3
 .LC13:
-	.string	"read"
+	.string	"mount"
 	.align	3
 .LC14:
-	.string	"getcwd"
+	.string	"umount"
 	.align	3
 .LC15:
-	.string	"getpid"
+	.string	"fstat"
 	.align	3
 .LC16:
-	.string	"write"
+	.string	"read"
 	.align	3
 .LC17:
-	.string	"times"
+	.string	"getcwd"
 	.align	3
 .LC18:
-	.string	"uname"
+	.string	"getpid"
 	.align	3
 .LC19:
-	.string	"brk"
+	.string	"write"
 	.align	3
 .LC20:
-	.string	"mmap"
+	.string	"times"
 	.align	3
 .LC21:
-	.string	"munmap"
+	.string	"uname"
 	.align	3
 .LC22:
-	.string	"fork"
+	.string	"brk"
 	.align	3
 .LC23:
-	.string	"exit"
+	.string	"mmap"
 	.align	3
 .LC24:
-	.string	"clone"
+	.string	"munmap"
 	.align	3
 .LC25:
-	.string	"wait"
+	.string	"fork"
 	.align	3
 .LC26:
-	.string	"waitpid"
+	.string	"exit"
 	.align	3
 .LC27:
-	.string	"yield"
+	.string	"clone"
 	.align	3
 .LC28:
-	.string	"execve"
+	.string	"wait"
 	.align	3
 .LC29:
-	.string	"getppid"
+	.string	"waitpid"
 	.align	3
 .LC30:
-	.string	"gettimeofday"
+	.string	"yield"
 	.align	3
 .LC31:
+	.string	"execve"
+	.align	3
+.LC32:
+	.string	"getppid"
+	.align	3
+.LC33:
+	.string	"gettimeofday"
+	.align	3
+.LC34:
 	.string	"sleep"
 	.globl	argv
 	.align	3
-.LC32:
+.LC35:
 	.string	"sh"
 	.section	.data.rel.local,"aw"
 	.align	3
 	.set	.LANCHOR0,. + 0
-	.type	argv, @object
-	.size	argv, 16
-argv:
-	.dword	.LC32
-	.dword	0
 	.type	tests, @object
-	.size	tests, 232
+	.size	tests, 256
 tests:
 	.dword	.LC3
 	.dword	.LC4
@@ -205,5 +212,13 @@ tests:
 	.dword	.LC29
 	.dword	.LC30
 	.dword	.LC31
+	.dword	.LC32
+	.dword	.LC33
+	.dword	.LC34
+	.type	argv, @object
+	.size	argv, 16
+argv:
+	.dword	.LC35
+	.dword	0
 	.ident	"GCC: (Ubuntu 11.4.0-1ubuntu1~22.04) 11.4.0"
 	.section	.note.GNU-stack,"",@progbits

@@ -45,4 +45,6 @@
 #define SYS_nanosleep   101
 #define SYS_getdents    61
 #define SYS_unlink      35
+#define SYS_umount      39
+#define SYS_mount       40
 #endif

@@ -136,6 +136,8 @@ extern uint64 sys_nanosleep(void);
 extern uint64 sys_dup3(void);
 extern uint64 sys_getdents64(void);
 extern uint64 sys_unlinkat(void);
+extern uint64 sys_mount(void);
+extern uint64 sys_umount2(void);
 
 static uint64 (*syscalls[])(void) = {
   [SYS_fork]        sys_fork,
@@ -181,6 +183,8 @@ static uint64 (*syscalls[])(void) = {
   [SYS_dup2]        sys_dup3,
   [SYS_getdents]    sys_getdents64,
   [SYS_unlink]      sys_unlinkat,
+  [SYS_mount]       sys_mount,
+  [SYS_umount]      sys_umount2,
 };
 
 static char *sysnames[] = {
@@ -227,6 +231,8 @@ static char *sysnames[] = {
   [SYS_dup2]        "dup2",
   [SYS_getdents]    "getdents",
   [SYS_unlink]      "unlink",
+  [SYS_mount]       "mount",
+  [SYS_umount]      "umount",
 };
 
 void

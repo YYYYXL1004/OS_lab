@@ -130,18 +130,28 @@ int exec(char *path, char **argv)
   }
   ustack[argc] = 0;
 
-  // push the array of argv[] pointers.
-  sp -= (argc+1) * sizeof(uint64);
-  sp -= sp % 16;
+  // push the array of argv[] pointers AND argc.
+  // Linux layout: sp -> [argc] -> [argv0] -> [argv1] ... -> [0]
+  
+  // 计算需要的空间：argc (8字节) + argv数组 (8 * (argc+1) 字节)
+  sp -= (argc + 2) * sizeof(uint64); 
+  sp -= sp % 16; // 保持 16 字节对齐
+
   if(sp < stackbase)
     goto bad;
-  if(copyout(pagetable, sp, (char *)ustack, (argc+1)*sizeof(uint64)) < 0)
+
+  // 1. 将 argc 写入栈顶 (sp)
+  if(copyout(pagetable, sp, (char *)&argc, sizeof(uint64)) < 0)
+    goto bad;
+
+  // 2. 将 argv 指针数组 (ustack) 写入 sp+8
+  if(copyout(pagetable, sp + 8, (char *)ustack, (argc+1)*sizeof(uint64)) < 0)
     goto bad;
 
   // arguments to user main(argc, argv)
-  // argc is returned via the system call return
-  // value, which goes in a0.
-  p->trapframe->a1 = sp;
+  // argc 依然通过 a0 返回 (exec返回值)
+  // a1 指向 argv 数组 (sp + 8) 以兼容 xv6 程序
+  p->trapframe->a1 = sp + 8;
 
   // Save program name for debugging.
   for(last=s=path; *s; s++)

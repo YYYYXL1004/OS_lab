@@ -58,3 +58,5 @@ entry("nanosleep");
 entry("dup2");
 entry("getdents");
 entry("unlink");
+entry("mount");
+entry("umount");

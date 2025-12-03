@@ -18,6 +18,9 @@ char *tests[] = {
       "chdir",
       "mkdir_",
       "unlink",
+      "mount",
+      "umount",
+      "fstat",
       "read",
       "getcwd",
       "getpid",
@@ -57,6 +60,8 @@ int main(void)
     }
     if (pid == 0)
     {
+      // 构造 argv，让 argv[0] 等于当前的测试程序名 tests[i]
+      char *argv[] = { tests[i], 0 };
       exec(tests[i], argv);
       printf("init: exec %s failed\n", tests[i]);
       exit(1);
