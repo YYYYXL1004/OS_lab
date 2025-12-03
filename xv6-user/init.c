@@ -14,7 +14,7 @@ char *tests[] = {
       "dup",
       "dup2",
       "pipe",
-      "getdents"
+      "getdents",
       "read",
       "getcwd",
       "getpid",
