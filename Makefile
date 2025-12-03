@@ -239,7 +239,6 @@ fs: $(UPROGS)
 		 cp $$file $(dst)/$${file#$U/_};\
 		 cp $$file $(dst)/bin/$${file#$U/_}; done
 	@cp -r riscv64/* $(dst)
-	# 手动将测试程序 mkdir_ 复制为 mkdir
 	@cp riscv64/mkdir_ $(dst)/mkdir
 	@ umount $(dst)
 
