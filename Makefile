@@ -203,6 +203,7 @@ UPROGS=\
 	$U/_grep\
 	$U/_ls\
 	$U/_kill\
+	$U/_mkdir\
 	$U/_xargs\
 	$U/_sleep\
 	$U/_find\
@@ -239,7 +240,6 @@ fs: $(UPROGS)
 		 cp $$file $(dst)/$${file#$U/_};\
 		 cp $$file $(dst)/bin/$${file#$U/_}; done
 	@cp -r riscv64/* $(dst)
-	@cp riscv64/mkdir_ $(dst)/mkdir
 	@ umount $(dst)
 
 

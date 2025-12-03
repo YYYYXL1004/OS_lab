@@ -100,7 +100,7 @@ main:
 	.string	"chdir"
 	.align	3
 .LC11:
-	.string	"mkdir"
+	.string	"mkdir_"
 	.align	3
 .LC12:
 	.string	"unlink"

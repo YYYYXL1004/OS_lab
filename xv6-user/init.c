@@ -16,7 +16,7 @@ char *tests[] = {
       "pipe",
       "getdents",
       "chdir",
-      "mkdir",
+      "mkdir_",
       "unlink",
       "read",
       "getcwd",
