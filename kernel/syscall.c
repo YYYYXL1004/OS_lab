@@ -105,7 +105,7 @@ extern uint64 sys_getpid(void);
 extern uint64 sys_kill(void);
 extern uint64 sys_mkdir(void);
 extern uint64 sys_open(void);
-extern uint64 sys_pipe(void);
+extern uint64 sys_pipe2(void);
 extern uint64 sys_read(void);
 extern uint64 sys_sbrk(void);
 extern uint64 sys_sleep(void);
@@ -134,12 +134,13 @@ extern uint64 sys_getppid(void);
 extern uint64 sys_gettimeofday(void);
 extern uint64 sys_nanosleep(void);
 extern uint64 sys_dup3(void);
+extern uint64 sys_getdents64(void);
 
 static uint64 (*syscalls[])(void) = {
   [SYS_fork]        sys_fork,
   [SYS_exit]        sys_exit,
   [SYS_wait]        sys_wait,
-  [SYS_pipe]        sys_pipe,
+  [SYS_pipe]        sys_pipe2,
   [SYS_read]        sys_read,
   [SYS_kill]        sys_kill,
   [SYS_exec]        sys_exec,
@@ -177,6 +178,7 @@ static uint64 (*syscalls[])(void) = {
   [SYS_gettimeofday]sys_gettimeofday,
   [SYS_nanosleep]   sys_nanosleep,
   [SYS_dup2]        sys_dup3,
+  [SYS_getdents]    sys_getdents64,
 };
 
 static char *sysnames[] = {
@@ -221,6 +223,7 @@ static char *sysnames[] = {
   [SYS_gettimeofday]"gettimeofday",
   [SYS_nanosleep]   "nanosleep",
   [SYS_dup2]        "dup2",
+  [SYS_getdents]    "getdents",
 };
 
 void

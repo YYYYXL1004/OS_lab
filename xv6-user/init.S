@@ -31,7 +31,7 @@ main:
 	li	a0,0
 	call	dup@plt
 	li	s0,0
-	li	s2,24
+	li	s2,25
 .L5:
 	call	fork@plt
 	mv	s1,a0
@@ -91,64 +91,67 @@ main:
 	.string	"dup2"
 	.align	3
 .LC8:
-	.string	"read"
+	.string	"pipe"
 	.align	3
 .LC9:
-	.string	"getcwd"
+	.string	"getdentsread"
 	.align	3
 .LC10:
-	.string	"getpid"
+	.string	"getcwd"
 	.align	3
 .LC11:
-	.string	"write"
+	.string	"getpid"
 	.align	3
 .LC12:
-	.string	"times"
+	.string	"write"
 	.align	3
 .LC13:
-	.string	"uname"
+	.string	"times"
 	.align	3
 .LC14:
-	.string	"brk"
+	.string	"uname"
 	.align	3
 .LC15:
-	.string	"mmap"
+	.string	"brk"
 	.align	3
 .LC16:
-	.string	"munmap"
+	.string	"mmap"
 	.align	3
 .LC17:
-	.string	"fork"
+	.string	"munmap"
 	.align	3
 .LC18:
-	.string	"exit"
+	.string	"fork"
 	.align	3
 .LC19:
-	.string	"clone"
+	.string	"exit"
 	.align	3
 .LC20:
-	.string	"wait"
+	.string	"clone"
 	.align	3
 .LC21:
-	.string	"waitpid"
+	.string	"wait"
 	.align	3
 .LC22:
-	.string	"yield"
+	.string	"waitpid"
 	.align	3
 .LC23:
-	.string	"execve"
+	.string	"yield"
 	.align	3
 .LC24:
-	.string	"getppid"
+	.string	"execve"
 	.align	3
 .LC25:
-	.string	"gettimeofday"
+	.string	"getppid"
 	.align	3
 .LC26:
+	.string	"gettimeofday"
+	.align	3
+.LC27:
 	.string	"sleep"
 	.globl	argv
 	.align	3
-.LC27:
+.LC28:
 	.string	"sh"
 	.section	.data.rel.local,"aw"
 	.align	3
@@ -156,10 +159,10 @@ main:
 	.type	argv, @object
 	.size	argv, 16
 argv:
-	.dword	.LC27
+	.dword	.LC28
 	.dword	0
 	.type	tests, @object
-	.size	tests, 192
+	.size	tests, 200
 tests:
 	.dword	.LC3
 	.dword	.LC4
@@ -185,5 +188,6 @@ tests:
 	.dword	.LC24
 	.dword	.LC25
 	.dword	.LC26
+	.dword	.LC27
 	.ident	"GCC: (Ubuntu 11.4.0-1ubuntu1~22.04) 11.4.0"
 	.section	.note.GNU-stack,"",@progbits

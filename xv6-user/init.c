@@ -13,6 +13,8 @@ char *tests[] = {
       "close",
       "dup",
       "dup2",
+      "pipe",
+      "getdents"
       "read",
       "getcwd",
       "getpid",

@@ -56,3 +56,4 @@ entry("getppid");
 entry("gettimeofday");
 entry("nanosleep");
 entry("dup2");
+entry("getdents");

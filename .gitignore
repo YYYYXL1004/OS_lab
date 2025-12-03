@@ -15,3 +15,5 @@ kernel/*.o
 kernel/include/*.back.h
 kernel/include/*.example.h
 target/*
+kernel-qemu
+sbi-qemu

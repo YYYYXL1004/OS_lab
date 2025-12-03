@@ -636,3 +636,148 @@ fail:
     eput(src);
   return -1;
 }
+
+uint64
+sys_pipe2(void)
+{
+  uint64 fdarray; // 用户空间的数组指针: int fd[2]
+  int flags;      // pipe2 的第二个参数 flags
+  struct file *rf, *wf;
+  int fd0, fd1;
+  struct proc *p = myproc();
+
+  // 获取参数：pipe2(int pipefd[2], int flags)
+  // 参数0: fdarray指针, 参数1: flags
+  if(argaddr(0, &fdarray) < 0 || argint(1, &flags) < 0)
+    return -1;
+
+  if(pipealloc(&rf, &wf) < 0)
+    return -1;
+
+  fd0 = -1;
+  if((fd0 = fdalloc(rf)) < 0 || (fd1 = fdalloc(wf)) < 0){
+    if(fd0 >= 0)
+      p->ofile[fd0] = 0;
+    fileclose(rf);
+    fileclose(wf);
+    return -1;
+  }
+
+  // 将生成的文件描述符写回用户空间
+  if(copyout2(fdarray, (char*)&fd0, sizeof(fd0)) < 0 ||
+     copyout2(fdarray+sizeof(fd0), (char *)&fd1, sizeof(fd1)) < 0){
+    p->ofile[fd0] = 0;
+    p->ofile[fd1] = 0;
+    fileclose(rf);
+    fileclose(wf);
+    return -1;
+  }
+  return 0;
+}
+
+// kernel/sysfile.c
+
+// 定义 linux_dirent64 结构体和文件类型常量
+struct linux_dirent64 {
+  uint64        d_ino;    // 索引节点号
+  uint64         d_off;    // 到下一个 dirent 的偏移量
+  unsigned short d_reclen; // 当前 dirent 的长度
+  unsigned char  d_type;   // 文件类型
+  char           d_name[]; // 文件名
+};
+
+#define DT_UNKNOWN 0
+#define DT_FIFO    1
+#define DT_CHR     2
+#define DT_DIR     4
+#define DT_BLK     6
+#define DT_REG     8
+#define DT_LNK     10
+#define DT_SOCK    12
+#define DT_WHT     14
+
+uint64
+sys_getdents64(void)
+{
+  struct file *f;
+  int fd;
+  uint64 buf;    // 用户缓冲区地址
+  int len;       // 用户缓冲区长度
+
+  // 获取参数: getdents64(int fd, struct linux_dirent64 *dirp, unsigned int count)
+  if(argfd(0, &fd, &f) < 0 || argaddr(1, &buf) < 0 || argint(2, &len) < 0)
+    return -1;
+
+  // 检查是否为目录且可读
+  if(f->readable == 0 || !(f->ep->attribute & ATTR_DIRECTORY))
+    return -1;
+
+  int count = 0; // enext 返回的 entry 数量 (包含 LFN)
+  int ret;
+  struct dirent de;
+  int nread = 0;
+  
+  elock(f->ep);
+
+  while(1) {
+    // 循环调用 enext 跳过空闲的目录项，直到找到有效文件或结束
+    // enext 会从 f->off 读取，并在内部处理
+    // 注意：我们需要自己根据 enext 返回的 count 更新 f->off
+    
+    while((ret = enext(f->ep, &de, f->off, &count)) == 0) {
+      // ret == 0 表示遇到空槽位 (empty slot)，跳过
+      f->off += count * 32;
+    }
+    
+    if(ret == -1) {
+      // 目录遍历结束
+      break; 
+    }
+
+    // 此时 de 中包含了有效的文件信息 (文件名等)
+    int name_len = strlen(de.filename);
+    // 计算当前 dirent 需要的大小: 头部固定长度 + 文件名长度 + 1(null terminator)
+    int reclen = 19 + name_len + 1; // 19 = 8(d_ino) + 8(d_off) + 2(d_reclen) + 1(d_type)
+    reclen = (reclen + 7) & ~7;     // 向上对齐到 8 字节边界
+
+    // 检查用户缓冲区是否足够
+    if(nread + reclen > len) {
+      if(nread == 0) {
+          // 连第一个都放不下，返回错误或 0? 通常返回 -1 或 EINVAL
+          eunlock(f->ep);
+          return -1;
+      }
+      // 缓冲区满了，下次再读
+      break; 
+    }
+
+    struct linux_dirent64 lde;
+    lde.d_ino = 0; // FAT32 没有 inode，置 0
+    // d_off 应该是指向下一个 dirent 的偏移量
+    lde.d_off = f->off + count * 32; 
+    lde.d_reclen = reclen;
+    lde.d_type = (de.attribute & ATTR_DIRECTORY) ? DT_DIR : DT_REG;
+
+    // 1. 拷贝结构体头部 (19字节)
+    if(copyout2(buf, (char*)&lde, 19) < 0) {
+      eunlock(f->ep);
+      return -1;
+    }
+    // 2. 拷贝文件名
+    if(copyout2(buf + 19, de.filename, name_len + 1) < 0) {
+      eunlock(f->ep);
+      return -1;
+    }
+    
+    // 如果需要清零填充字节，可以在这里处理，但非必须
+
+    // 更新状态
+    buf += reclen;
+    nread += reclen;
+    len -= reclen;
+    f->off += count * 32; // 更新文件偏移量，准备读取下一个
+  }
+
+  eunlock(f->ep);
+  return nread; // 返回读取的总字节数
+}

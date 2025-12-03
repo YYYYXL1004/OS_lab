@@ -5,7 +5,7 @@
 #define SYS_fork         1
 #define SYS_exit         93
 #define SYS_wait         3
-#define SYS_pipe         4
+#define SYS_pipe         59
 #define SYS_read         63
 #define SYS_kill         6
 #define SYS_exec         7
@@ -43,4 +43,5 @@
 #define SYS_getppid     173
 #define SYS_gettimeofday 169
 #define SYS_nanosleep   101
+#define SYS_getdents    61
 #endif
