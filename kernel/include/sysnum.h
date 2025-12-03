@@ -10,7 +10,7 @@
 #define SYS_kill         6
 #define SYS_exec         7
 #define SYS_fstat        80
-#define SYS_chdir        9
+#define SYS_chdir        49
 #define SYS_dup         23
 #define SYS_dup2        24
 #define SYS_getpid      172
@@ -44,4 +44,5 @@
 #define SYS_gettimeofday 169
 #define SYS_nanosleep   101
 #define SYS_getdents    61
+#define SYS_unlink      35
 #endif

@@ -781,3 +781,111 @@ sys_getdents64(void)
   eunlock(f->ep);
   return nread; // 返回读取的总字节数
 }
+
+uint64
+sys_mkdirat(void)
+{
+  int dirfd;
+  char path[FAT32_MAX_PATH];
+  int mode;
+  struct dirent *ep;
+  struct file *f;
+  struct dirent *base = NULL; // 默认为 NULL，表示相对于 CWD
+
+  // 获取参数: mkdirat(int dirfd, const char *pathname, mode_t mode)
+  if(argint(0, &dirfd) < 0 || argstr(1, path, FAT32_MAX_PATH) < 0 || argint(2, &mode) < 0)
+    return -1;
+
+  // 确定查找基准 (base)
+  // 如果路径是相对路径 且 dirfd 不是 AT_FDCWD
+  if(path[0] != '/' && dirfd != AT_FDCWD){
+    if(dirfd < 0 || dirfd >= NOFILE || (f = myproc()->ofile[dirfd]) == 0 || f->type != FD_ENTRY){
+      return -1; // 无效的文件描述符
+    }
+    base = f->ep;
+  }
+
+  // 调用 create 创建目录 (T_DIR)
+  if((ep = create(base, path, T_DIR, mode)) == 0){
+    return -1;
+  }
+  
+  eunlock(ep);
+  eput(ep);
+  return 0;
+}
+
+uint64
+sys_unlinkat(void)
+{
+  int dirfd;
+  char path[FAT32_MAX_PATH];
+  int flags;
+  struct dirent *ep;
+  struct file *f;
+  struct dirent *base = NULL;
+  
+  // 获取参数: unlinkat(int dirfd, const char *pathname, int flags)
+  if(argint(0, &dirfd) < 0 || argstr(1, path, FAT32_MAX_PATH) < 0 || argint(2, &flags) < 0)
+    return -1;
+
+  // 确定查找基准
+  if(path[0] != '/' && dirfd != AT_FDCWD){
+    if(dirfd < 0 || dirfd >= NOFILE || (f = myproc()->ofile[dirfd]) == 0 || f->type != FD_ENTRY){
+      return -1;
+    }
+    base = f->ep;
+  }
+
+  // 查找目标文件/目录
+  // 注意：unlink 测试用例可能删除名为 "." 的特殊路径，需要特判或由 ename 处理
+  char name[FAT32_MAX_FILENAME + 1];
+  // 使用 enameparent_env 找到父目录和文件名，这样方便加锁删除
+  struct dirent *dp = enameparent_env(base, path, name);
+  if(!dp) return -1;
+
+  elock(dp); // 锁住父目录
+
+  // 在父目录中查找目标
+  uint off;
+  ep = dirlookup(dp, name, &off);
+  if(!ep){
+      eunlock(dp);
+      eput(dp);
+      return -1;
+  }
+  
+  elock(ep); // 锁住目标文件
+
+  // 检查是否是目录
+  if(ep->attribute & ATTR_DIRECTORY){
+      // 如果是目录，且没有设置 AT_REMOVEDIR 标志，则 unlink 应该失败
+      // (但在简单的 FAT32 实现中，为了通过某些宽泛的测试，有时会放宽此限制。
+      //  标准行为是：unlink不能删目录，rmdir(即flags & AT_REMOVEDIR)才能删)
+      if((flags & AT_REMOVEDIR) == 0){
+          eunlock(ep);
+          eput(ep);
+          eunlock(dp);
+          eput(dp);
+          return -1; // Is a directory
+      }
+      // 如果是目录，必须为空才能删除
+      if(!isdirempty(ep)){
+          eunlock(ep);
+          eput(ep);
+          eunlock(dp);
+          eput(dp);
+          return -1; // Not empty
+      }
+  }
+
+  // 执行删除操作
+  eremove(ep);
+  
+  eunlock(ep);
+  eput(ep);
+  eunlock(dp);
+  eput(dp);
+
+  return 0;
+}

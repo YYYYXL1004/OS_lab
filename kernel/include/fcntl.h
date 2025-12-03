@@ -12,3 +12,4 @@
 // 告诉内核，如果提供的路径是相对路径，请相对于当前工作目录（Current Working Directory）来查找，
 // 而不是相对于某个特定的文件描述符。
 #define AT_FDCWD  -100
+#define AT_REMOVEDIR 0x200
